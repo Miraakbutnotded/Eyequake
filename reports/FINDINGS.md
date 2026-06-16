@@ -48,6 +48,25 @@ Kuzey Anadolu Fayı, Ege/Helen yayı, Van. → `reports/figures/06_hazard_rate_m
 (Omori/ETAS) geliyor — "aktif dönem devam eder". MAE'de fark yok (model kazancı
 yüksek-aktivite pencerelerinde yoğun). Bu deprem tahmini değil, *oran* öngörüsü.
 
+### Track B+ — ETAS (fiziksel-temelli olasılıksal model)
+
+Temporal ETAS (μ + Omori-Utsu tetikleme), MLE ile fit (M≥4.0, train 75%):
+
+| Model | MAE | Poisson Dev | Climatology'ye beceri |
+|-------|-----|-------------|------------------------|
+| **ETAS** | **12.86** | **22.15** | **+71.1%** |
+| climatology | 19.53 | 76.52 | — |
+| persistence | 30.56 | 88.54 | −15.7% |
+
+ETAS hem deviance hem MAE'de baseline'ı açık ara yener (gradient boosting +%15 idi).
+Forecastlanabilen sinyal kesinlikle artçı tetiklenmesi.
+
+**Dürüst uyarı:** Fit edilen parametreler fiziksel olarak temiz değil — dallanma
+oranı n≈11.5 (n<1 olmalı; n≥1 = sönmeyen kaskad), p≈1.01 alt sınırda. Sebep:
+temporal-only, tüm-Türkiye ETAS bağımsız bölgeleri (KAF/DAF/Ege) tek havuzda
+topluyor + 2023 dizisi tetiklemeyi şişiriyor. **Forecasting becerisi gerçek;
+parametre yorumu için uzaysal-zamansal / bölge-bazlı ETAS gerekir.**
+
 ## Track C — Deterministik tahmin (büyüklük) · ❌ MÜMKÜN DEĞİL
 
 Bir sonraki olayın büyüklüğü, önceki 10 olaydan:
@@ -81,7 +100,8 @@ dürüst çerçeve hem bilimsel hem ticari olarak daha güçlü.
 
 1. **AFAD/Kandilli kataloğu** entegrasyonu → daha düşük Mc, daha çok olay, daha sağlam Track A/B.
 2. **BIS (Bina Bilgi Sistemi)** veri modeli — projenin en savunulabilir, en az kalabalık ayağı.
-3. ETAS modeli (Track B'yi düzgün olasılıksal forma taşır).
+3. ~~ETAS modeli~~ ✅ yapıldı (Track B+). Sıradaki: **uzaysal-zamansal / bölge-bazlı
+   ETAS** (fiziksel n<1 parametreleri + harita üstünde "beklenen oran" katmanı).
 4. Hazard + oran sonuçlarını web haritası/dashboard'a taşı (sunum/demo).
 
 ## Tekrar üretim
