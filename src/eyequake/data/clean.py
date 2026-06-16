@@ -22,7 +22,10 @@ def clean_catalog(raw: pd.DataFrame) -> pd.DataFrame:
     """
     df = raw.loc[:, [c for c in _KEEP if c in raw.columns]].copy()
 
-    df["time"] = pd.to_datetime(df["time"], utc=True, errors="coerce")
+    # format="ISO8601": değişken hassasiyetli ISO tarihleri (AFAD bazı kayıtlarda
+    # fractional saniye taşır) tutarlı parse eder. Sabit format çıkarımı, eşleşmeyen
+    # satırları sessizce NaT'ye çevirip veri kaybına yol açardı.
+    df["time"] = pd.to_datetime(df["time"], utc=True, format="ISO8601", errors="coerce")
     df = df.dropna(subset=["time", "latitude", "longitude", "mag"])
     df = df.drop_duplicates(subset="id")
     df = df.sort_values("time").reset_index(drop=True)

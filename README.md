@@ -22,22 +22,32 @@ konuşur, pazarlama değil.
 
 ## Veri
 
-- **Birincil:** USGS FDSN Event API (açık, anahtarsız) — Türkiye bounding box, 1990–bugün.
-- **Otoriter alternatif (sonra):** AFAD / Kandilli (KOERI) ulusal katalogları.
+- **Birincil (kanonik):** AFAD ulusal ağ kataloğu — Türkiye, 1990–bugün, 156k+ olay.
+  Temiz Gutenberg-Richter b≈1.0 (sağlam katalog), il/ilçe metadata. `scripts/07_fetch_afad.py`.
+- **Karşılaştırma/yedek:** USGS FDSN Event API (açık, anahtarsız). `scripts/01_fetch_catalog.py`.
+  USGS Türkiye'de M<4 için zaman-değişken tamlık taşır (b≈0.53 artefakt) — bkz. `reports/FINDINGS.md`.
 - Bina-seviyesi veri (BIS) ileri aşama — şirket raporundaki bilinen veri açığı.
 
 ## Yapı
 
 ```
 src/eyequake/
-  config.py          # bölge bbox, sabitler, yollar
-  data/
-    fetch.py         # USGS FDSN katalog çekici (yıllık paging)
-    clean.py         # normalizasyon, dedup, türetilmiş alanlar
+  config.py            # bölge bbox, sabitler, yollar
+  data/fetch.py        # USGS FDSN çekici (yıllık paging)
+  data/fetch_afad.py   # AFAD ulusal katalog çekici (ortak şemaya normalize)
+  data/clean.py        # normalizasyon, dedup, türetilmiş alanlar
+  analysis/seismology.py  # Mc, b-değeri, FMD (Gutenberg-Richter)
+  analysis/hazard.py      # Track A — uzaysal sismisite oran alanı
+  forecast/windows.py · baselines.py · evaluate.py · deterministic.py  # Track B/C
+  web/export.py        # ön yüz için GeoJSON üretimi
 scripts/
-  01_fetch_catalog.py   # ham katalogu indir
+  01_fetch_catalog.py  # USGS indir   ·  07_fetch_afad.py     # AFAD indir (kanonik)
+  02_eda.py            # EDA + teşhis  ·  04_hazard_map.py     # Track A harita
+  03_forecast_baselines.py · 05_deterministic_test.py         # Track B/C eval
+  06_export_web_data.py    # web GeoJSON
+web/                     # statik risk haritası MVP (Leaflet) — deploy-hazır
 data/{raw,processed}/    # üretilir, versiyonlanmaz
-reports/figures/         # EDA çıktıları
+reports/                 # FINDINGS.md + figures/
 ```
 
 ## Kurulum

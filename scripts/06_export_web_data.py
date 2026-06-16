@@ -22,8 +22,9 @@ from eyequake.web.export import (  # noqa: E402
     events_to_geojson,
 )
 
+# AFAD kataloğu M≥3.0'da tam → daha yoğun, daha bilgilendirici risk haritası.
 CELL_DEG = 0.25
-MIN_MAG = 4.0
+MIN_MAG = 3.0
 
 
 def main() -> int:
@@ -40,9 +41,15 @@ def main() -> int:
     (WEB_DATA_DIR / "big_events.geojson").write_text(
         json.dumps(events_gj), encoding="utf-8"
     )
+    # Kaynak adını işlenmiş özetten oku (USGS ya da AFAD — son çekime bağlı).
+    summary_path = PROCESSED_DIR / f"{TURKEY.name}_summary.json"
+    source = "AFAD"
+    if summary_path.exists():
+        source = json.loads(summary_path.read_text()).get("source", "AFAD")
+
     meta = {
         "generated": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
-        "source": "USGS FDSN Event API",
+        "source": source,
         "region": TURKEY.name,
         "cell_deg": CELL_DEG,
         "min_mag": MIN_MAG,

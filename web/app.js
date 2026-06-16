@@ -70,6 +70,8 @@ async function load() {
 
     document.getElementById("meta").textContent =
       `${hazard.features.length} hücre · ${events.features.length} büyük deprem (M≥6) · güncellendi ${meta.generated}`;
+    const srcEl = document.getElementById("src");
+    if (srcEl) srcEl.textContent = meta.source || "AFAD";
 
     L.geoJSON(hazard, {
       style: (f) => ({

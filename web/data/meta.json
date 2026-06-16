@@ -1,10 +1,10 @@
 {
   "generated": "2026-06-16",
-  "source": "USGS FDSN Event API",
+  "source": "AFAD",
   "region": "turkey",
   "cell_deg": 0.25,
-  "min_mag": 4.0,
-  "n_cells": 913,
-  "n_big_events": 39,
+  "min_mag": 3.0,
+  "n_cells": 1886,
+  "n_big_events": 27,
   "disclaimer": "Göreli sismik tehlike indeksi (0–100), geçmiş aktiviteye dayalı. Olasılık veya deprem tahmini DEĞİLDİR."
 }
