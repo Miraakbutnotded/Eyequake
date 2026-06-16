@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>EyeQuake — Sismik Risk İstihbaratı</title>
+  <meta name="description" content="Türkiye sismik risk haritası — geçmiş deprem aktivitesine dayalı göreli tehlike istihbaratı." />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo">EYE<span class="logo-accent">QUAKE</span></span>
+      <span class="tagline">Sismik Risk İstihbaratı</span>
+    </div>
+    <div class="disclaimer-pill" title="Bilimsel duruş">
+      ⚠ Risk göstergesi — <strong>deprem tahmini değildir</strong>
+    </div>
+  </header>
+
+  <main class="layout">
+    <div id="map" role="application" aria-label="Türkiye sismik risk haritası"></div>
+
+    <aside class="panel" id="panel">
+      <div class="panel-empty" id="panelEmpty">
+        <h2>Bir bölgeye tıkla</h2>
+        <p>Haritadaki renkli hücreler, 1990–günümüz arası deprem aktivitesine göre
+           <strong>göreli sismik tehlike indeksini</strong> (0–100) gösterir.</p>
+        <p class="muted">Yıldızlar tarihsel büyük depremleri (M≥6) işaretler.</p>
+      </div>
+
+      <div class="panel-content hidden" id="panelContent">
+        <div class="score-block">
+          <div class="score-label">Göreli risk indeksi</div>
+          <div class="score-value" id="scoreValue">—</div>
+          <div class="score-bar"><div class="score-fill" id="scoreFill"></div></div>
+          <div class="score-band" id="scoreBand">—</div>
+        </div>
+        <dl class="metrics">
+          <div><dt>Konum</dt><dd id="mLoc">—</dd></div>
+          <div><dt>Yıllık M≥4 oranı</dt><dd id="mRate">—</dd></div>
+          <div><dt>Gözlenen en büyük</dt><dd id="mMax">—</dd></div>
+          <div><dt>Toplam olay (≥M4)</dt><dd id="mN">—</dd></div>
+          <div><dt>Son 10 yıl aktivite</dt><dd id="mRecent">—</dd></div>
+        </dl>
+        <p class="note" id="note"></p>
+      </div>
+    </aside>
+  </main>
+
+  <footer class="bottombar">
+    <span id="meta">Yükleniyor…</span>
+    <span>Kaynak: USGS FDSN · Göreli, tanımlayıcı gösterge — olasılık/tahmin değil</span>
+  </footer>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+          integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script src="./app.js"></script>
+</body>
+</html>

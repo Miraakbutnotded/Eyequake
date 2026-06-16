@@ -1,0 +1,16 @@
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.ipynb_checkpoints/
+
+# Data (regenerated from source APIs — not versioned)
+data/raw/
+data/processed/
+reports/figures/
+
+# OS / editor
+.DS_Store
+.vscode/
+.idea/

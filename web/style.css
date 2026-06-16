@@ -1,0 +1,96 @@
+:root {
+  --eq-yellow: #ffd500;
+  --eq-black: #0a0a0a;
+  --eq-ink: #161616;
+  --eq-red: #e5002b;
+  --eq-text: #f5f5f5;
+  --eq-muted: #9a9a9a;
+  --panel-w: 360px;
+  --bar-h: 60px;
+  --foot-h: 34px;
+  font-family: "Inter", "Helvetica Neue", Arial, system-ui, sans-serif;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: var(--eq-black); color: var(--eq-text); }
+
+/* --- Top bar (siyah + sarı diyagonal aksan) --- */
+.topbar {
+  height: var(--bar-h);
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 22px;
+  background: var(--eq-black);
+  border-bottom: 3px solid var(--eq-yellow);
+  position: relative; overflow: hidden;
+}
+.topbar::after {
+  content: ""; position: absolute; right: -40px; top: 0; bottom: 0; width: 160px;
+  background: var(--eq-yellow); transform: skewX(-20deg); opacity: 0.12;
+}
+.brand { display: flex; align-items: baseline; gap: 14px; }
+.logo { font-size: 24px; font-weight: 800; letter-spacing: -0.5px; color: #fff; }
+.logo-accent { color: var(--eq-yellow); }
+.tagline { font-size: 13px; color: var(--eq-muted); font-weight: 500; }
+.disclaimer-pill {
+  background: rgba(229, 0, 43, 0.12); color: #ff7a8c;
+  border: 1px solid rgba(229, 0, 43, 0.5); border-radius: 999px;
+  padding: 6px 14px; font-size: 12px; z-index: 1;
+}
+.disclaimer-pill strong { color: #ff9fad; }
+
+/* --- Layout --- */
+.layout { display: flex; height: calc(100% - var(--bar-h) - var(--foot-h)); }
+#map { flex: 1; background: #1a1a1a; }
+
+/* --- Panel --- */
+.panel {
+  width: var(--panel-w); background: var(--eq-ink);
+  border-left: 1px solid #2a2a2a; padding: 22px; overflow-y: auto;
+}
+.panel-empty h2 { margin: 4px 0 12px; font-size: 20px; }
+.panel-empty p { color: #cfcfcf; font-size: 14px; line-height: 1.55; }
+.muted { color: var(--eq-muted) !important; }
+.hidden { display: none; }
+
+.score-block { text-align: center; margin-bottom: 22px; }
+.score-label { font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: var(--eq-muted); }
+.score-value { font-size: 64px; font-weight: 800; line-height: 1.05; margin: 4px 0; }
+.score-bar { height: 8px; background: #2a2a2a; border-radius: 999px; overflow: hidden; }
+.score-fill { height: 100%; width: 0; border-radius: 999px; transition: width 0.3s ease; }
+.score-band { margin-top: 8px; font-weight: 700; font-size: 14px; }
+
+.metrics { margin: 0; display: grid; gap: 1px; background: #2a2a2a;
+  border: 1px solid #2a2a2a; border-radius: 10px; overflow: hidden; }
+.metrics > div { display: flex; justify-content: space-between; align-items: center;
+  background: var(--eq-ink); padding: 11px 14px; }
+.metrics dt { color: var(--eq-muted); font-size: 13px; margin: 0; }
+.metrics dd { margin: 0; font-weight: 700; font-size: 14px; }
+.note { margin-top: 16px; font-size: 12px; color: var(--eq-muted); line-height: 1.5;
+  border-left: 3px solid var(--eq-yellow); padding-left: 12px; }
+
+/* --- Footer --- */
+.bottombar {
+  height: var(--foot-h); display: flex; align-items: center; justify-content: space-between;
+  padding: 0 18px; font-size: 11.5px; color: var(--eq-muted);
+  background: var(--eq-black); border-top: 1px solid #222;
+}
+
+/* --- Legend --- */
+.legend {
+  background: rgba(12,12,12,0.9); color: var(--eq-text); padding: 10px 12px;
+  border-radius: 10px; border: 1px solid #333; font-size: 12px; line-height: 1.7;
+}
+.legend b { display: block; margin-bottom: 6px; font-size: 11px; letter-spacing: 0.5px;
+  text-transform: uppercase; color: var(--eq-muted); }
+.legend i { width: 14px; height: 14px; display: inline-block; margin-right: 8px;
+  border-radius: 3px; vertical-align: -2px; }
+
+.leaflet-popup-content-wrapper { background: var(--eq-ink); color: var(--eq-text);
+  border: 1px solid var(--eq-yellow); }
+.leaflet-popup-tip { background: var(--eq-yellow); }
+
+@media (max-width: 760px) {
+  .layout { flex-direction: column; }
+  .panel { width: 100%; max-height: 42%; border-left: none; border-top: 1px solid #2a2a2a; }
+  .tagline, .disclaimer-pill { display: none; }
+}
