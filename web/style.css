@@ -89,8 +89,65 @@ html, body { margin: 0; height: 100%; background: var(--eq-black); color: var(--
   border: 1px solid var(--eq-yellow); }
 .leaflet-popup-tip { background: var(--eq-yellow); }
 
+/* --- Layer toggle button --- */
+.layer-toggles { display: flex; gap: 8px; z-index: 1; }
+.layer-btn {
+  background: transparent; border: 1px solid #333; color: var(--eq-muted);
+  border-radius: 999px; padding: 6px 14px; font-size: 12px; cursor: pointer;
+  display: flex; align-items: center; gap: 7px; white-space: nowrap;
+  transition: border-color 0.2s, color 0.2s;
+}
+.layer-btn:hover { border-color: var(--eq-yellow); color: var(--eq-text); }
+.layer-btn.active { border-color: #7ecb20; color: var(--eq-text); }
+.layer-btn:disabled { opacity: 0.5; cursor: default; }
+
+.live-dot {
+  width: 7px; height: 7px; border-radius: 50%; background: #7ecb20; flex-shrink: 0;
+  animation: live-pulse 1.6s ease-in-out infinite;
+}
+@keyframes live-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.2; }
+}
+
+/* --- Recent event panel --- */
+.event-header { display: flex; align-items: center; gap: 14px; margin-bottom: 18px; }
+.event-mag    { font-size: 46px; font-weight: 800; line-height: 1; min-width: 80px; }
+.event-info   { flex: 1; overflow: hidden; }
+.event-place  { font-size: 13px; font-weight: 600; line-height: 1.35; margin-bottom: 3px; }
+.event-time   { font-size: 12px; color: var(--eq-muted); }
+
+/* --- ETAS forecast block --- */
+.etas-block { margin-top: 18px; }
+.etas-title {
+  font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--eq-muted);
+  border-top: 1px solid #2a2a2a; padding-top: 14px; margin-bottom: 8px;
+}
+.etas-table { border: 1px solid #2a2a2a; border-radius: 8px; overflow: hidden; margin-bottom: 6px; }
+.etas-row   { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; }
+.etas-row + .etas-row { border-top: 1px solid #2a2a2a; }
+.etas-row span { padding: 9px 10px; font-size: 13px; font-weight: 700; text-align: right; background: var(--eq-ink); }
+.etas-row span:first-child { text-align: left; }
+.etas-head span { background: #1d1d1d; font-size: 11px; font-weight: 500; color: var(--eq-muted); }
+.etas-dim { color: var(--eq-muted) !important; font-weight: 500 !important; }
+.etas-rem { color: var(--eq-yellow) !important; }
+
+.etas-prog-wrap  { background: #2a2a2a; height: 4px; border-radius: 2px; margin: 4px 0 2px; }
+.etas-prog-fill  { height: 100%; background: var(--eq-yellow); border-radius: 2px; }
+.etas-prog-label { font-size: 11px; color: var(--eq-muted); text-align: right; margin-bottom: 4px; }
+
+/* --- Back button --- */
+.back-btn {
+  margin-top: 18px; width: 100%; background: transparent;
+  border: 1px solid #2a2a2a; color: var(--eq-muted);
+  border-radius: 8px; padding: 9px; font-size: 13px; cursor: pointer;
+  transition: border-color 0.2s, color 0.2s;
+}
+.back-btn:hover { border-color: var(--eq-yellow); color: var(--eq-text); }
+
 @media (max-width: 760px) {
   .layout { flex-direction: column; }
   .panel { width: 100%; max-height: 42%; border-left: none; border-top: 1px solid #2a2a2a; }
   .tagline, .disclaimer-pill { display: none; }
+  .layer-btn { font-size: 11px; padding: 5px 10px; }
 }

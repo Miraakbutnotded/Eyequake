@@ -15,6 +15,9 @@
       <span class="logo">EYE<span class="logo-accent">QUAKE</span></span>
       <span class="tagline">Sismik Risk İstihbaratı</span>
     </div>
+    <div class="layer-toggles">
+      <button class="layer-btn" id="btnRecent" onclick="toggleRecentLayer()">Son 30 Gün</button>
+    </div>
     <div class="disclaimer-pill" title="Bilimsel duruş">
       ⚠ Risk göstergesi — <strong>deprem tahmini değildir</strong>
     </div>
@@ -28,7 +31,8 @@
         <h2>Bir bölgeye tıkla</h2>
         <p>Haritadaki renkli hücreler, 1990–günümüz arası deprem aktivitesine göre
            <strong>göreli sismik tehlike indeksini</strong> (0–100) gösterir.</p>
-        <p class="muted">Yıldızlar tarihsel büyük depremleri (M≥6) işaretler.</p>
+        <p>Son 30 günün depremlerini gösteren <strong>renkli noktaları</strong> da tıklayabilirsin — M≥4.5 olaylar için artçı sarsıntı tahmini görüntülenir.</p>
+        <p class="muted">Mavi halkalar tarihsel büyük depremleri (M≥6) işaretler.</p>
       </div>
 
       <div class="panel-content hidden" id="panelContent">
@@ -46,6 +50,27 @@
           <div><dt>Son 10 yıl aktivite</dt><dd id="mRecent">—</dd></div>
         </dl>
         <p class="note" id="note"></p>
+      </div>
+
+      <div class="panel-event hidden" id="panelEvent">
+        <div class="event-header">
+          <div class="event-mag" id="evMag">—</div>
+          <div class="event-info">
+            <div class="event-place" id="evPlace">—</div>
+            <div class="event-time" id="evTime">—</div>
+          </div>
+        </div>
+        <dl class="metrics">
+          <div><dt>Derinlik</dt><dd id="evDepth">—</dd></div>
+          <div><dt>Koordinat</dt><dd id="evCoord">—</dd></div>
+          <div><dt>Geçen süre</dt><dd id="evElapsed">—</dd></div>
+        </dl>
+        <div class="etas-block hidden" id="etasBlock">
+          <div class="etas-title">Artçı Sarsıntı Tahmini (ETAS)</div>
+          <div id="etasGrid"></div>
+          <p class="note">Reasenberg-Jones modeli (a=−1.67, b=1.0, p=1.08, c=0.05 g). İstatistiksel oran tahmini — kesin deprem tahmini değildir.</p>
+        </div>
+        <button class="back-btn" onclick="resetPanel()">← Haritaya dön</button>
       </div>
     </aside>
   </main>
