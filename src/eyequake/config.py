@@ -45,6 +45,15 @@ TURKEY = Region(
     max_lon=45.0,
 )
 
+# Ana fay sistemleri — kaba dikdörtgen sınırlar (gerçek fay izi değil; bölge-bazlı
+# ETAS için sismik olarak bağımsız alt-katalogları ayırmaya yeter).
+FAULT_ZONES = [
+    Region(name="KAF (Kuzey Anadolu)", min_lat=39.5, max_lat=41.5, min_lon=26.0, max_lon=41.0),
+    Region(name="DAF (Doğu Anadolu / 2023)", min_lat=36.0, max_lat=39.0, min_lon=35.5, max_lon=40.0),
+    Region(name="Ege / Helen yayı", min_lat=36.0, max_lat=39.5, min_lon=25.5, max_lon=28.5),
+    Region(name="Van", min_lat=37.5, max_lat=39.5, min_lon=42.0, max_lon=45.0),
+]
+
 # --- Veri kaynağı ---
 USGS_FDSN_URL = "https://earthquake.usgs.gov/fdsnws/event/1/query"
 

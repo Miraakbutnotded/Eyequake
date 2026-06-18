@@ -61,11 +61,38 @@ Temporal ETAS (μ + Omori-Utsu tetikleme), MLE ile fit (M≥4.0, train 75%):
 ETAS hem deviance hem MAE'de baseline'ı açık ara yener (gradient boosting +%15 idi).
 Forecastlanabilen sinyal kesinlikle artçı tetiklenmesi.
 
-**Dürüst uyarı:** Fit edilen parametreler fiziksel olarak temiz değil — dallanma
-oranı n≈11.5 (n<1 olmalı; n≥1 = sönmeyen kaskad), p≈1.01 alt sınırda. Sebep:
-temporal-only, tüm-Türkiye ETAS bağımsız bölgeleri (KAF/DAF/Ege) tek havuzda
-topluyor + 2023 dizisi tetiklemeyi şişiriyor. **Forecasting becerisi gerçek;
-parametre yorumu için uzaysal-zamansal / bölge-bazlı ETAS gerekir.**
+**Not (2026-06 güncel katalog ile yeniden test):** Katalog büyüdükçe (20.806 olay,
+2026-06'ya kadar) ulusal havuzlanmış fit artık n=0.942 veriyor — daha önce
+raporlanan n≈11.5 (fiziksel olmayan, sönmeyen kaskad) bu genişletilmiş veride
+**tekrarlanmadı**. Beceri de güncellendi: **+40.0%** (önceki +71.1% idi — pencere/
+dönem kaymasından). Ayrıca 2023 dizisini hariç tutarak (06 Şub–01 Nis 2023) yeniden
+fit edildiğinde n **1.157'ye yükseliyor** (sönmeyen kaskad) — yani 2023 dizisinin
+dahil edilmesi parametreyi *daha* fiziksel hale getiriyor, beklenenin tersi. Sonuç:
+n'in fiziksel olup olmaması zaman penceresine/veri miktarına duyarlı; tek bir
+"doğru" n yoktur, izlenmesi gereken bir tanı göstergesidir.
+
+### Bölge-bazlı (fay sistemi) ETAS — `scripts/09_etas_spatial.py`
+
+Ulusal havuzlanmış fit mekanik olarak bağımsız fay sistemlerini (KAF/DAF/Ege/Van)
+tek modelde topluyordu. Her bölge ayrı fit edildiğinde (M≥4.0, 75/25 train/test):
+
+| Bölge | Olay | n (dallanma) | Beceri (climatology'ye) |
+|-------|------|---------------|--------------------------|
+| Ulusal (havuzlanmış) | 4.741 | 0.942 ✅ fiziksel | +40.0% |
+| KAF (Kuzey Anadolu) | 551 | 0.757 ✅ fiziksel | −13.2% ❌ |
+| DAF (Doğu Anadolu / 2023) | 903 | tanımsız (α≥β) | **+91.6%** |
+| Ege / Helen yayı | 1.437 | 0.629 ✅ fiziksel | **+44.4%** |
+| Van | 415 | 3.602 ❌ süper-kritik | −4.1% |
+
+**Dürüst değerlendirme:** bölge-bazlı bölme parametreleri otomatik "düzeltmiyor".
+Ege bölgesi en temiz sonuç (fiziksel n + güçlü beceri). DAF/2023 bölgesinde tek
+büyük diziye (M7.8 + binlerce artçı) o kadar baskın ki α tahmini β'yı (b·ln10)
+geçiyor ve n matematiksel olarak tanımsız kalıyor — ama tam da bu yoğun dizi
+sayesinde forecasting becerisi en yüksek (+91.6%). KAF ve Van'da olay sayısı
+azken (≤900) MLE dengesiz: KAF beceri kaybediyor, Van'da n patlıyor (küçük
+örneklem + tek büyük olay baskınlığı). **Sonuç: bölgesel ETAS yöntemsel olarak
+daha doğru ama küçük-örneklem bölgelerinde (KAF, Van) daha fazla veri (AFAD/
+Kandilli) olmadan güvenilir değil.**
 
 ## Track C — Deterministik tahmin (büyüklük) · ❌ MÜMKÜN DEĞİL
 
@@ -99,9 +126,15 @@ dürüst çerçeve hem bilimsel hem ticari olarak daha güçlü.
 ## Sonraki adımlar (öneri)
 
 1. **AFAD/Kandilli kataloğu** entegrasyonu → daha düşük Mc, daha çok olay, daha sağlam Track A/B.
+   Fetcher kodu hazır (`scripts/07_fetch_afad.py`), ancak AFAD servisi bazı ağlardan
+   (örn. Türkiye dışı IP'ler) erişilemiyor olabilir — Türkiye içi bir ağdan
+   doğrulanması gerekiyor.
 2. **BIS (Bina Bilgi Sistemi)** veri modeli — projenin en savunulabilir, en az kalabalık ayağı.
-3. ~~ETAS modeli~~ ✅ yapıldı (Track B+). Sıradaki: **uzaysal-zamansal / bölge-bazlı
-   ETAS** (fiziksel n<1 parametreleri + harita üstünde "beklenen oran" katmanı).
+3. ~~ETAS modeli~~ ✅ yapıldı (Track B+). ~~Bölge-bazlı ETAS~~ ✅ yapıldı
+   (`scripts/09_etas_spatial.py`) — KAF/DAF/Ege/Van ayrı fit edildi. Sıradaki:
+   KAF ve Van'da örneklem küçük (≤900 olay), AFAD kataloğu olmadan güvenilir
+   fiziksel parametre elde etmek zor; harita üstünde bölge-bazlı "beklenen oran"
+   katmanı henüz web'e taşınmadı.
 4. Hazard + oran sonuçlarını web haritası/dashboard'a taşı (sunum/demo).
 
 ## Tekrar üretim
