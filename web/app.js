@@ -48,11 +48,14 @@ function formatElapsed(days) {
   return `${Math.floor(days)} gün önce`;
 }
 
+// Distinct blue/violet palette so recent-quake dots never blend into the
+// red/orange/yellow/green hazard grid underneath them. White stroke gives
+// contrast against any cell color.
 function recentMagStyle(mag) {
-  if (mag >= 5.5) return { color: "#ff3b00", radius: 8 + (mag - 5.5) * 4 };
-  if (mag >= 4.5) return { color: "#ffd500", radius: 7 };
-  if (mag >= 3.5) return { color: "#7ecb20", radius: 5 };
-  return           { color: "#4a9e8a",  radius: 3 };
+  if (mag >= 5.5) return { color: "#ff2dd4", radius: 9 + (mag - 5.5) * 4 };
+  if (mag >= 4.5) return { color: "#a855f7", radius: 7.5 };
+  if (mag >= 3.5) return { color: "#3b82f6", radius: 6 };
+  return           { color: "#60a5fa",  radius: 4 };
 }
 
 // --- Panel state ---
@@ -180,10 +183,10 @@ async function loadRecentQuakes() {
         const fresh = elapsedDays(f.properties.time) < 1;
         return L.circleMarker(latlng, {
           radius:      st.radius,
-          color:       st.color,
-          weight:      fresh ? 2 : 1,
+          color:       "#ffffff",
+          weight:      fresh ? 2.5 : 1.5,
           fillColor:   st.color,
-          fillOpacity: fresh ? 0.9 : 0.6,
+          fillOpacity: fresh ? 0.95 : 0.85,
         });
       },
       onEachFeature: (f, layer) => {
@@ -191,10 +194,10 @@ async function loadRecentQuakes() {
           L.DomEvent.stopPropagation(e);
           showRecentEvent(f.properties, f.geometry.coordinates);
         });
-        layer.on("mouseover", (e) => e.target.setStyle({ weight: 2.5, fillOpacity: 1 }));
+        layer.on("mouseover", (e) => e.target.setStyle({ weight: 3, fillOpacity: 1 }));
         layer.on("mouseout",  (e) => {
           const fresh = elapsedDays(f.properties.time) < 1;
-          e.target.setStyle({ weight: fresh ? 2 : 1, fillOpacity: fresh ? 0.9 : 0.6 });
+          e.target.setStyle({ weight: fresh ? 2.5 : 1.5, fillOpacity: fresh ? 0.95 : 0.85 });
         });
       },
     }).addTo(map);
@@ -239,6 +242,7 @@ async function load() {
     if (srcEl) srcEl.textContent = meta.source || "AFAD";
 
     L.geoJSON(hazard, {
+      filter: (f) => f.properties.risk_index >= 40, // hide "Düşük" cells for a cleaner map
       style: (f) => ({
         fillColor:   riskStyle(f.properties.risk_index).color,
         fillOpacity: 0.55,
@@ -276,23 +280,32 @@ async function load() {
 }
 
 function addLegend() {
-  const legend = L.control({ position: "bottomright" });
-  legend.onAdd = () => {
+  const hazard = L.control({ position: "bottomright" });
+  hazard.onAdd = () => {
     const div = L.DomUtil.create("div", "legend");
     div.innerHTML =
-      "<b>Göreli risk indeksi</b>" +
-      RISK_STOPS.map((s) => `<i style="background:${s.color}"></i>${s.band} (${s.min}+)`).join("<br>") +
+      "<b>Göreli risk indeksi (hücreler)</b>" +
+      RISK_STOPS.filter((s) => s.min > 0)
+        .map((s) => `<i style="background:${s.color}"></i>${s.band} (${s.min}+)`)
+        .join("<br>") +
       '<br><hr style="border-color:#333;margin:6px 0">' +
-      "<b>Son 30 gün</b><br>" +
-      '<i style="background:#ff3b00;border-radius:50%"></i>M≥5.5<br>' +
-      '<i style="background:#ffd500;border-radius:50%"></i>M 4.5–5.5<br>' +
-      '<i style="background:#7ecb20;border-radius:50%"></i>M 3.5–4.5<br>' +
-      '<i style="background:#4a9e8a;border-radius:50%"></i>M &lt;3.5<br>' +
-      '<hr style="border-color:#333;margin:6px 0">' +
       '<i style="background:#00e5ff;border-radius:50%"></i>M≥6 tarihsel';
     return div;
   };
-  legend.addTo(map);
+  hazard.addTo(map);
+
+  const recent = L.control({ position: "bottomleft" });
+  recent.onAdd = () => {
+    const div = L.DomUtil.create("div", "legend legend-recent");
+    div.innerHTML =
+      "<b>Son 30 gün (canlı)</b>" +
+      '<i style="background:#ff2dd4;border-radius:50%;border:1px solid #fff"></i>M≥5.5<br>' +
+      '<i style="background:#a855f7;border-radius:50%;border:1px solid #fff"></i>M 4.5–5.5<br>' +
+      '<i style="background:#3b82f6;border-radius:50%;border:1px solid #fff"></i>M 3.5–4.5<br>' +
+      '<i style="background:#60a5fa;border-radius:50%;border:1px solid #fff"></i>M &lt;3.5';
+    return div;
+  };
+  recent.addTo(map);
 }
 
 load();
