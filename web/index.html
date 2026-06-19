@@ -16,6 +16,12 @@
       <span class="tagline">Sismik Risk İstihbaratı</span>
     </div>
     <div class="layer-toggles">
+      <div class="metric-group">
+        <button class="metric-btn active" data-metric="risk" onclick="setMetric('risk')">Risk</button>
+        <button class="metric-btn" data-metric="amp" onclick="setMetric('amp')">Zemin büyütme</button>
+        <button class="metric-btn" data-metric="liq" onclick="setMetric('liq')">Sıvılaşma</button>
+        <button class="metric-btn" data-metric="site_risk" onclick="setMetric('site_risk')">Saha-risk</button>
+      </div>
       <button class="layer-btn" id="btnRecent" onclick="toggleRecentLayer()">Son 30 Gün</button>
     </div>
     <div class="disclaimer-pill" title="Bilimsel duruş">
@@ -49,7 +55,17 @@
           <div><dt>Toplam olay (≥M4)</dt><dd id="mN">—</dd></div>
           <div><dt>Son 10 yıl aktivite</dt><dd id="mRecent">—</dd></div>
         </dl>
+        <div class="site-title">Zemin / saha (BIS)</div>
+        <dl class="metrics">
+          <div><dt>Zemin sınıfı (Vs30)</dt><dd id="mSiteClass">—</dd></div>
+          <div><dt>Zemin büyütmesi</dt><dd id="mAmp">—</dd></div>
+          <div><dt>Sıvılaşma yatkınlığı*</dt><dd id="mLiq">—</dd></div>
+          <div><dt>Saha-düzeltilmiş risk</dt><dd id="mSiteRisk">—</dd></div>
+        </dl>
         <p class="note" id="note"></p>
+        <p class="note">*Sıvılaşma bir <strong>tarama göstergesidir</strong> — jeoteknik
+           değerlendirme değil, sondaj/yeraltı suyu verisi içermez. Vs30 ~bölgesel
+           çözünürlükte (eğimden türetilmiş), mikrobölgeleme yerine geçmez.</p>
       </div>
 
       <div class="panel-event hidden" id="panelEvent">
@@ -82,6 +98,6 @@
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
           integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-  <script src="./app.js?v=2"></script>
+  <script src="./app.js?v=3"></script>
 </body>
 </html>

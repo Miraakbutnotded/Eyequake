@@ -20,6 +20,30 @@ const RJ = { a: -1.67, b: 1.0, p: 1.08, c: 0.05 };
 let recentLayer = null;
 let recentVisible = false;
 
+// --- Hücre renklendirme metrikleri (BIS zemin katmanı) ---
+let hazardLayer = null;
+let currentMetric = "risk"; // risk | amp | liq | site_risk
+
+function ampColor(a) {
+  if (a >= 2.0) return "#54278f";
+  if (a >= 1.6) return "#756bb1";
+  if (a >= 1.3) return "#9e9ac8";
+  if (a >= 1.1) return "#cbc9e2";
+  return "#f2f0f7";
+}
+const LIQ_COLOR = { "yüksek": "#d10000", "orta": "#ff8c00", "düşük": "#ffd500", "çok düşük": "#6b6b1a" };
+
+function cellColor(p) {
+  if (currentMetric === "amp") return ampColor(p.amp ?? 1);
+  if (currentMetric === "liq") return LIQ_COLOR[p.liq_class] || "#333";
+  if (currentMetric === "site_risk") return riskStyle(p.site_risk ?? 0).color;
+  return riskStyle(p.risk_index).color;
+}
+
+function cellStyle(f) {
+  return { fillColor: cellColor(f.properties), fillOpacity: 0.55, weight: 0.3, color: "#000" };
+}
+
 // --- Helpers ---
 function riskStyle(idx) {
   return RISK_STOPS.find((s) => idx >= s.min) || RISK_STOPS[RISK_STOPS.length - 1];
@@ -92,6 +116,11 @@ function showCell(props, latlng) {
   document.getElementById("mMax").textContent    = `M ${fmt(props.max_mag, 1)}`;
   document.getElementById("mN").textContent      = props.n_events;
   document.getElementById("mRecent").textContent = `${props.n_recent} olay`;
+  document.getElementById("mSiteClass").textContent =
+    props.site_class ? `${props.site_class} (Vs30 ${props.vs30})` : "—";
+  document.getElementById("mAmp").textContent = props.amp ? `${fmt(props.amp, 2)}×` : "—";
+  document.getElementById("mLiq").textContent = props.liq_class || "—";
+  document.getElementById("mSiteRisk").textContent = props.site_risk ?? "—";
   document.getElementById("note").textContent    =
     "Bu indeks geçmiş (1990+) deprem aktivitesinin Türkiye genelindeki yüzdelik " +
     "sıralamasıdır. Gelecekteki bir depremin zamanını/büyüklüğünü tahmin etmez.";
@@ -241,14 +270,9 @@ async function load() {
     const srcEl = document.getElementById("src");
     if (srcEl) srcEl.textContent = meta.source || "AFAD";
 
-    L.geoJSON(hazard, {
+    hazardLayer = L.geoJSON(hazard, {
       filter: (f) => f.properties.risk_index >= 40, // hide "Düşük" cells for a cleaner map
-      style: (f) => ({
-        fillColor:   riskStyle(f.properties.risk_index).color,
-        fillOpacity: 0.55,
-        weight:      0.3,
-        color:       "#000",
-      }),
+      style: cellStyle,
       onEachFeature: (feature, layer) => {
         layer.on({
           click:     (e) => showCell(feature.properties, e.latlng),
@@ -279,18 +303,50 @@ async function load() {
   loadRecentQuakes();
 }
 
+let hazardLegendDiv = null;
+
+const RISK_LEGEND = () =>
+  RISK_STOPS.filter((s) => s.min > 0)
+    .map((s) => `<i style="background:${s.color}"></i>${s.band} (${s.min}+)`)
+    .join("<br>");
+
+const METRIC_LEGENDS = {
+  risk: () => "<b>Göreli risk indeksi</b>" + RISK_LEGEND(),
+  site_risk: () => "<b>Saha-düzeltilmiş risk</b>" + RISK_LEGEND(),
+  amp: () =>
+    "<b>Zemin büyütmesi (×)</b>" +
+    [["#54278f", "≥2.0 (E yumuşak)"], ["#756bb1", "1.6–2.0"], ["#9e9ac8", "1.3–1.6 (D)"],
+     ["#cbc9e2", "1.1–1.3 (C)"], ["#f2f0f7", "~1.0 (B kaya)"]]
+      .map(([c, l]) => `<i style="background:${c}"></i>${l}`).join("<br>"),
+  liq: () =>
+    "<b>Sıvılaşma yatkınlığı</b>" +
+    [["#d10000", "yüksek"], ["#ff8c00", "orta"], ["#ffd500", "düşük"], ["#6b6b1a", "çok düşük"]]
+      .map(([c, l]) => `<i style="background:${c}"></i>${l}`).join("<br>") +
+    '<br><span class="legend-note">*tarama göstergesi, jeoteknik değil</span>',
+};
+
+function updateLegend() {
+  if (!hazardLegendDiv) return;
+  hazardLegendDiv.innerHTML =
+    METRIC_LEGENDS[currentMetric]() +
+    '<br><hr style="border-color:#333;margin:6px 0">' +
+    '<i style="background:#00e5ff;border-radius:50%"></i>M≥6 tarihsel';
+}
+
+function setMetric(m) {
+  currentMetric = m;
+  if (hazardLayer) hazardLayer.setStyle(cellStyle);
+  document.querySelectorAll(".metric-btn")
+    .forEach((b) => b.classList.toggle("active", b.dataset.metric === m));
+  updateLegend();
+}
+
 function addLegend() {
   const hazard = L.control({ position: "bottomright" });
   hazard.onAdd = () => {
-    const div = L.DomUtil.create("div", "legend");
-    div.innerHTML =
-      "<b>Göreli risk indeksi (hücreler)</b>" +
-      RISK_STOPS.filter((s) => s.min > 0)
-        .map((s) => `<i style="background:${s.color}"></i>${s.band} (${s.min}+)`)
-        .join("<br>") +
-      '<br><hr style="border-color:#333;margin:6px 0">' +
-      '<i style="background:#00e5ff;border-radius:50%"></i>M≥6 tarihsel';
-    return div;
+    hazardLegendDiv = L.DomUtil.create("div", "legend");
+    updateLegend();
+    return hazardLegendDiv;
   };
   hazard.addTo(map);
 

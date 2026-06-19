@@ -101,6 +101,23 @@ html, body { margin: 0; height: 100%; background: var(--eq-black); color: var(--
 .layer-btn.active { border-color: #7ecb20; color: var(--eq-text); }
 .layer-btn:disabled { opacity: 0.5; cursor: default; }
 
+/* --- Metrik seçici (BIS katmanları) --- */
+.metric-group { display: flex; border: 1px solid #333; border-radius: 999px; overflow: hidden; }
+.metric-btn {
+  background: transparent; border: none; color: var(--eq-muted);
+  padding: 6px 12px; font-size: 12px; cursor: pointer; white-space: nowrap;
+  border-right: 1px solid #333; transition: background 0.15s, color 0.15s;
+}
+.metric-btn:last-child { border-right: none; }
+.metric-btn:hover { color: var(--eq-text); }
+.metric-btn.active { background: var(--eq-yellow); color: #000; font-weight: 700; }
+
+.site-title {
+  margin: 16px 0 8px; font-size: 11px; text-transform: uppercase; letter-spacing: 1px;
+  color: var(--eq-muted); border-top: 1px solid #2a2a2a; padding-top: 14px;
+}
+.legend-note { font-size: 10px; color: var(--eq-muted); font-style: italic; }
+
 .live-dot {
   width: 7px; height: 7px; border-radius: 50%; background: #7ecb20; flex-shrink: 0;
   animation: live-pulse 1.6s ease-in-out infinite;
