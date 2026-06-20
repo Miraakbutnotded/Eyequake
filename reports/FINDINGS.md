@@ -125,6 +125,34 @@ beklentisi (büyüklükler ~bağımsız üstel dağılım). ML "ortalamayı söy
 ROC-AUC 0.551 ≈ rastgele. Train→test base-rate %41→%59 (2023 durağansızlığı).
 → base-rate üstünde anlamlı sinyal yok.
 
+## Track D — Zemin/saha kırılganlık (BIS) · ✅ GERÇEK (sınırlı)
+
+Açık yükseklik → eğim → **Vs30** (Wald-Allen) → NEHRP zemin sınıfı + büyütme;
+**sıvılaşma** screening proxy; hazard × büyütme = saha-düzeltilmiş risk
+(`scripts/10_site_layer.py`, `analysis/site.py`, birim test 6/6).
+
+**Doğrulama — bilinen jeolojiye karşı sanity-check (yer-gerçeği yok):**
+
+| Konum | Vs30 (sınıf) | Büyütme | Sıvılaşma | Beklenti | |
+|-------|---|---|---|---|---|
+| İstanbul Avcılar (1999 büyütme) | 150 (E) | 2.25× | yüksek | yüksek amp | ✅ |
+| Çukurova/Adana deltası | 240 (D) | 1.78× | yüksek | yüksek sıvılaşma | ✅ |
+| Erzurum yüksek ova | 620 (C) | 1.11× | çok düşük | düşük | ✅ |
+| Hakkari dağlık | 620 (C) | 1.11× | çok düşük | düşük | ✅ |
+| Adapazarı (1999 sıvılaşma) | 360 (C) | 1.45× | orta | yüksek | ⚠️ |
+
+4/5 güçlü; Adapazarı (küçük havza) hafif düşük tahmin — 0.25° hücre + ~2 km eğim
+penceresi küçük havzaları düzleştiriyor (Wald-Allen ~1 km için kalibre).
+**Sınırlar:** Vs30 ~bölgesel çözünürlük (mikrobölgeleme değil); sıvılaşma tarama
+göstergesi (sondaj/yağış verisi içermez); deniz hücreleri yumuşak çıkar (maskeleme fast-follow).
+
+## Belirsizlik notu
+
+Skor tablolarındaki nokta-tahminler (örn. +%71.1 beceri) **tek bir 75/25 train/test
+bölünmesinden** gelir; tek-fit gürültüsünü gizler. `evaluate.bootstrap_mean_ci` ile
+pencere-blok bootstrap %95 CI hesaplanabilir; b-değeri zaten Shi-Bolt standart hatası
+(`b_value_aki.sigma`) taşır. Raporlanan rakamlar **±belirsizlik** ile okunmalıdır.
+
 ## Sonuç — ürün için ne anlama geliyor
 
 | İddia | Statü | Ürün konumu |

@@ -59,3 +59,23 @@ def skill_score(model_metric: float, baseline_metric: float) -> float:
     if baseline_metric == 0:
         return 0.0
     return 1.0 - (model_metric / baseline_metric)
+
+
+def bootstrap_mean_ci(
+    x: np.ndarray, n_boot: int = 2000, alpha: float = 0.05, seed: int = 0
+) -> tuple[float, float, float]:
+    """Bir örneklemin ortalaması için bootstrap %(1-alpha) güven aralığı.
+
+    Tek bir nokta-tahmin (örn. +%71.1 beceri) tek-bölünme gürültüsünü gizler;
+    pencere blokları üzerinde resample ederek belirsizliği niceler.
+
+    Returns:
+        (alt, ortalama, üst) — alt/üst yüzde sınırları.
+    """
+    x = np.asarray(x, dtype=float)
+    rng = np.random.default_rng(seed)
+    idx = rng.integers(0, x.size, size=(n_boot, x.size))
+    means = x[idx].mean(axis=1)
+    lo = float(np.quantile(means, alpha / 2.0))
+    hi = float(np.quantile(means, 1.0 - alpha / 2.0))
+    return lo, float(x.mean()), hi

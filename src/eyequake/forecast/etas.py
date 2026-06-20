@@ -35,7 +35,12 @@ class ETASParams:
 
 
 def _intensity_at_events(t: np.ndarray, m: np.ndarray, mu, K, c, p, alpha, m0) -> np.ndarray:
-    """Her olay zamanındaki λ (yalnızca önceki olaylardan tetikleme)."""
+    """Her olay zamanındaki λ (yalnızca önceki olaylardan tetikleme).
+
+    Karmaşıklık O(n²). Bilinçli olarak M≥4.0 alt-kataloğunda (~4.2k olay) kullanılır;
+    orada saniyeler içinde koşar. Tüm AFAD kataloğu (156k, M≥2.5) için tasarlanmamıştır
+    — gerekirse zaman-pencereli tetikleme kesmesi (yakın geçmişle sınırla) eklenmelidir.
+    """
     lam = np.full(t.size, mu, dtype=float)
     for i in range(1, t.size):
         dt = t[i] - t[:i]

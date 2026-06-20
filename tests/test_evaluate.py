@@ -6,6 +6,7 @@ import numpy as np
 import pytest
 
 from eyequake.forecast.evaluate import (
+    bootstrap_mean_ci,
     poisson_deviance,
     score,
     skill_score,
@@ -44,3 +45,11 @@ def test_skill_score_baseline_zero_returns_zero():
 def test_skill_score_improvement_and_regression():
     assert skill_score(0.5, 1.0) == pytest.approx(0.5)   # %50 iyileşme
     assert skill_score(1.5, 1.0) == pytest.approx(-0.5)  # baseline'dan kötü
+
+
+def test_bootstrap_mean_ci_brackets_mean_and_deterministic():
+    x = np.arange(100.0)
+    lo, mean, hi = bootstrap_mean_ci(x, n_boot=1000, seed=0)
+    assert lo < mean < hi
+    assert mean == pytest.approx(49.5)
+    assert bootstrap_mean_ci(x, seed=0) == bootstrap_mean_ci(x, seed=0)  # tekrarlanabilir
