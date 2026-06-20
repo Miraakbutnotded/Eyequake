@@ -7,8 +7,6 @@ göstergedir. Olasılık dili kullanmaktan kasıtla kaçınılır (dürüst konu
 
 from __future__ import annotations
 
-import json
-import math
 
 import numpy as np
 import pandas as pd

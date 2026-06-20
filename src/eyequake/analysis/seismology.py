@@ -39,8 +39,10 @@ def frequency_magnitude_distribution(mags: np.ndarray, bin_width: float = 0.1) -
     """Büyüklük binlerine göre artımlı ve kümülatif olay sayıları."""
     mags = np.asarray(mags, dtype=float)
     lo = math.floor(mags.min() / bin_width) * bin_width
-    hi = math.ceil(mags.max() / bin_width) * bin_width
-    edges = np.arange(lo, hi + bin_width, bin_width)
+    # Kenarları tam-sayı bin sayısından kur (np.arange float kayması en büyük depremi
+    # FMD'den düşürebiliyordu). Üst kenar maks büyüklüğün kesin üstünde olur.
+    n_bins = int(round((mags.max() - lo) / bin_width)) + 1
+    edges = lo + bin_width * np.arange(n_bins + 1)
     incremental, _ = np.histogram(mags, bins=edges)
     centers = edges[:-1] + bin_width / 2.0
     # Kümülatif: M >= center (yüksekten alçağa toplam).

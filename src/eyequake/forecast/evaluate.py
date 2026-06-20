@@ -32,7 +32,11 @@ def poisson_deviance(y_true: np.ndarray, y_pred: np.ndarray) -> float:
     yt = np.asarray(y_true, dtype=float)
     yp = np.clip(np.asarray(y_pred, dtype=float), 1e-9, None)
     # 2 * (y*log(y/yhat) - (y - yhat)); y=0 için log terimi 0.
-    term = np.where(yt > 0, yt * np.log(yt / yp), 0.0)
+    # log'u yalnızca y>0 olan yerlerde hesapla (y=0'da log(0) RuntimeWarning'i önle).
+    safe = yt > 0
+    ratio = np.ones_like(yt)
+    np.divide(yt, yp, out=ratio, where=safe)
+    term = np.where(safe, yt * np.log(ratio), 0.0)
     return float(2.0 * np.mean(term - (yt - yp)))
 
 

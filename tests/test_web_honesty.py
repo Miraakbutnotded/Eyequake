@@ -7,7 +7,6 @@ olduğunu korur. Çalıştır: ./.venv/bin/python tests/test_web_honesty.py
 from __future__ import annotations
 
 import re
-import sys
 from pathlib import Path
 
 WEB = Path(__file__).resolve().parents[1] / "web"
