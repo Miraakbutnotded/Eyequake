@@ -1,8 +1,13 @@
-# EyeQuake — Sismik Risk & Deprem Öngörü Araştırma Prototipi
+# EyeQuake — Sismik Risk & Bina Kırılganlık İstihbaratı (araştırma prototipi)
 
 > 6 Şubat 2023 depremleri sonrası doğan EyeQuake projesinin **araştırma prototipi**.
 > Amaç: *"Geçmiş deprem kataloğundan deprem gerçekten öngörülebilir mi?"* sorusunu
 > dürüst baseline'lara karşı, sıkı zaman-serisi doğrulamasıyla test etmek.
+>
+> **Ürün konumu** (bkz. [`docs/POSITIONING.md`](docs/POSITIONING.md)): parsel-bazlı
+> sismik risk + bina-kırılganlık istihbaratı. Beachhead = **sigorta/reasürans**
+> (parsel-risk → fiyatlama). Hazard = commodity, **BIS/bina-kırılganlık = çekirdek
+> farklılaştırıcı**. Bu bir **deprem tahmini değil** — Track C bunu test edip reddetti (↓).
 
 ## Bilimsel duruş (önemli)
 
