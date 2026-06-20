@@ -49,8 +49,8 @@ def test_false_reassurance_guard():
 
 
 def test_methodology_page_exists_and_honest():
-    m = _read("methodology.html")
-    for term in ["deterministik", "Mümkün değil", "tarama göstergesi", "AFAD"]:
+    m = _read("methodology.html").lower()
+    for term in ["deterministik", "mümkün değil", "tarama göstergesi", "afad"]:
         assert term in m, f"methodology.html '{term}' içermeli"
 
 
