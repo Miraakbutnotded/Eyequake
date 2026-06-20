@@ -1,0 +1,26 @@
+{
+  "generated": "2026-06-20",
+  "canonical_etas": {
+    "source": "AFAD kanonik katalog, temporal ETAS MLE (M≥4.0, train %75)",
+    "mu": 0.03296,
+    "K": 0.0302,
+    "c": 0.01765,
+    "p": 1.01,
+    "alpha": 1.5903,
+    "m0": 4.0,
+    "b_value": 0.95,
+    "branching_ratio": 11.517,
+    "skill_vs_climatology_pct": 71.1,
+    "warning": "Süper-kritik (n≫1, fiziksel-olmayan). YALNIZCA tanı göstergesi; per-olay artçı forecast için kullanılmaz. Bkz. reports/FINDINGS.md."
+  },
+  "rj_aftershock": {
+    "model": "Reasenberg-Jones (generic Türkiye varsayılanları)",
+    "a": -1.67,
+    "b": 1.0,
+    "p": 1.08,
+    "c": 0.05,
+    "source": "Operasyonel artçı tahmin standardı (USGS). Generic katsayılar.",
+    "why_not_canonical": "Web artçı paneli, projenin temporal ETAS fit'i süper-kritik (n≫1) olduğu için generic R-J kullanır — operasyonel olarak daha savunulabilir."
+  },
+  "disclaimer": "İstatistiksel oran tahmini — kesin deprem tahmini DEĞİLDİR. Belirsizlik yüksektir; gerçek değer birkaç kat değişebilir."
+}

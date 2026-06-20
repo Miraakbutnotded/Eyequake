@@ -66,6 +66,7 @@
         <p class="note">*Sıvılaşma bir <strong>tarama göstergesidir</strong> — jeoteknik
            değerlendirme değil, sondaj/yeraltı suyu verisi içermez. Vs30 ~bölgesel
            çözünürlükte (eğimden türetilmiş), mikrobölgeleme yerine geçmez.</p>
+        <p class="note"><a href="./methodology.html" target="_blank">Nasıl hesaplanır + dürüst sınırlar →</a></p>
       </div>
 
       <div class="panel-event hidden" id="panelEvent">
@@ -82,9 +83,9 @@
           <div><dt>Geçen süre</dt><dd id="evElapsed">—</dd></div>
         </dl>
         <div class="etas-block hidden" id="etasBlock">
-          <div class="etas-title">Artçı Sarsıntı Tahmini (ETAS)</div>
+          <div class="etas-title">Artçı Aktivite Beklentisi (istatistiksel)</div>
           <div id="etasGrid"></div>
-          <p class="note">Reasenberg-Jones modeli (a=−1.67, b=1.0, p=1.08, c=0.05 g). İstatistiksel oran tahmini — kesin deprem tahmini değildir.</p>
+          <p class="note">Generic Reasenberg-Jones oran modeli — kesin deprem tahmini <strong>değildir</strong>.</p>
         </div>
         <button class="back-btn" onclick="resetPanel()">← Haritaya dön</button>
       </div>
@@ -98,6 +99,6 @@
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
           integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-  <script src="./app.js?v=3"></script>
+  <script src="./app.js?v=4"></script>
 </body>
 </html>

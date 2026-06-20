@@ -15,7 +15,15 @@ const TR = { minlat: 35.5, maxlat: 42.5, minlon: 25.5, maxlon: 45.0 };
 
 // Reasenberg-Jones aftershock model (generic Turkey defaults)
 // N(M≥m, t1→t2) = 10^(a + b*(M-m)) · ∫(t+c)^(-p)dt
-const RJ = { a: -1.67, b: 1.0, p: 1.08, c: 0.05 };
+// etas_params.json'dan yüklenir (provenance'lı tek doğruluk kaynağı); fetch başarısızsa fallback.
+let RJ = { a: -1.67, b: 1.0, p: 1.08, c: 0.05 };
+
+// Generic R-J artçı sayıları yüksek belirsizlik taşır → sahte-kesinlik veren tek sayı
+// yerine kaba ARALIK göster (~0.4×–2.3×).
+function etasBand(n) {
+  if (n < 0.5) return "~0";
+  return `${Math.round(n * 0.4)}–${Math.round(Math.max(1, n * 2.3))}`;
+}
 
 let recentLayer = null;
 let recentVisible = false;
@@ -163,15 +171,15 @@ function showRecentEvent(props, coords) {
         </div>
         <div class="etas-row">
           <span class="etas-dim">M≥3</span>
-          <span>${Math.round(n3_7)}</span>
-          <span>${Math.round(n3_30)}</span>
-          <span class="${hasRemain ? "etas-rem" : "etas-dim"}">${hasRemain ? Math.round(n3_rem) : "—"}</span>
+          <span>${etasBand(n3_7)}</span>
+          <span>${etasBand(n3_30)}</span>
+          <span class="${hasRemain ? "etas-rem" : "etas-dim"}">${hasRemain ? etasBand(n3_rem) : "—"}</span>
         </div>
         <div class="etas-row">
           <span class="etas-dim">M≥4</span>
-          <span>${Math.round(n4_7)}</span>
-          <span>${Math.round(n4_30)}</span>
-          <span class="${hasRemain ? "etas-rem" : "etas-dim"}">${hasRemain ? Math.round(n4_rem) : "—"}</span>
+          <span>${etasBand(n4_7)}</span>
+          <span>${etasBand(n4_30)}</span>
+          <span class="${hasRemain ? "etas-rem" : "etas-dim"}">${hasRemain ? etasBand(n4_rem) : "—"}</span>
         </div>
       </div>
       ${hasRemain ? `
@@ -180,9 +188,21 @@ function showRecentEvent(props, coords) {
       </div>
       <div class="etas-prog-label">${fmt(elapsed, 1)} / 30 gün geçti · kalan ${fmt(remainDays, 1)} gün</div>
       ` : ""}
+      <div class="etas-caption">≈ kaba beklenti aralığı — <strong>kesin sayı değildir</strong>;
+        gerçek değer birkaç kat değişebilir.</div>
+      <details class="etas-details"><summary>nasıl hesaplanır + dürüst sınırlar</summary>
+        Generic Reasenberg-Jones artçı modeli — <strong>deprem tahmini değildir</strong>.
+        Projenin fitted ETAS'ı süper-kritik (n≫1, fiziksel-olmayan) olduğundan panelde
+        kullanılmaz. <a href="./methodology.html" target="_blank">Tüm metodoloji + sınırlar →</a>
+      </details>
     `;
   } else {
-    etasBlock.classList.add("hidden");
+    etasBlock.classList.remove("hidden");
+    document.getElementById("etasGrid").innerHTML =
+      `<p class="note">M&lt;4.5 — anlamlı artçı dizisi beklenmez, tahmin gösterilmiyor.
+       <strong>"Düşük gözlenen aktivite" güvenli demek DEĞİLDİR</strong> — bu konum yine
+       yüksek sismik risk taşıyabilir (soldaki risk katmanına bak).
+       <a href="./methodology.html" target="_blank">Metodoloji →</a></p>`;
   }
 }
 
@@ -259,11 +279,13 @@ function toggleRecentLayer() {
 // --- Static layers + boot ---
 async function load() {
   try {
-    const [meta, hazard, events] = await Promise.all([
+    const [meta, hazard, events, etasParams] = await Promise.all([
       fetch("./data/meta.json").then((r) => r.json()),
       fetch("./data/hazard_cells.geojson").then((r) => r.json()),
       fetch("./data/big_events.geojson").then((r) => r.json()),
+      fetch("./data/etas_params.json").then((r) => r.json()).catch(() => null),
     ]);
+    if (etasParams?.rj_aftershock) RJ = etasParams.rj_aftershock; // hardcoded değil, provenance'lı
 
     document.getElementById("meta").textContent =
       `${hazard.features.length} hücre · ${events.features.length} büyük deprem (M≥6) · güncellendi ${meta.generated}`;

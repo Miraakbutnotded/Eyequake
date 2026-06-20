@@ -152,6 +152,11 @@ html, body { margin: 0; height: 100%; background: var(--eq-black); color: var(--
 .etas-prog-wrap  { background: #2a2a2a; height: 4px; border-radius: 2px; margin: 4px 0 2px; }
 .etas-prog-fill  { height: 100%; background: var(--eq-yellow); border-radius: 2px; }
 .etas-prog-label { font-size: 11px; color: var(--eq-muted); text-align: right; margin-bottom: 4px; }
+.etas-caption { font-size: 11px; color: var(--eq-muted); margin: 6px 0 2px; line-height: 1.4; }
+.etas-details { font-size: 11px; color: var(--eq-muted); margin-top: 6px; line-height: 1.5; }
+.etas-details summary { cursor: pointer; color: var(--eq-yellow); margin-bottom: 4px; }
+.etas-details a, .note a { color: var(--eq-yellow); text-decoration: none; }
+.etas-details a:hover, .note a:hover { text-decoration: underline; }
 
 /* --- Back button --- */
 .back-btn {

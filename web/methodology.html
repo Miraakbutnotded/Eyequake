@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>EyeQuake — Nasıl Hesaplanır + Dürüst Sınırlar</title>
+  <link rel="stylesheet" href="./style.css" />
+  <style>
+    .doc { max-width: 760px; margin: 0 auto; padding: 28px 22px 80px; color: var(--eq-text); }
+    .doc h1 { font-size: 26px; margin: 0 0 6px; }
+    .doc h2 { font-size: 17px; margin: 28px 0 8px; border-top: 1px solid #2a2a2a; padding-top: 18px; }
+    .doc p, .doc li { color: #cfcfcf; font-size: 14px; line-height: 1.6; }
+    .doc .tag { display: inline-block; font-size: 12px; font-weight: 700; padding: 2px 8px;
+      border-radius: 6px; margin-right: 6px; }
+    .ok { background: rgba(126,203,32,0.15); color: #9be23a; }
+    .mid { background: rgba(255,213,0,0.15); color: var(--eq-yellow); }
+    .no { background: rgba(229,0,43,0.15); color: #ff7a8c; }
+    .doc a { color: var(--eq-yellow); }
+    .back { display: inline-block; margin-bottom: 18px; color: var(--eq-yellow); text-decoration: none; }
+    .warn { border-left: 3px solid var(--eq-red); padding: 10px 14px; background: rgba(229,0,43,0.06);
+      font-size: 13px; border-radius: 0 8px 8px 0; margin: 12px 0; }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo">EYE<span class="logo-accent">QUAKE</span></span>
+      <span class="tagline">Nasıl Hesaplanır + Dürüst Sınırlar</span>
+    </div>
+    <div class="disclaimer-pill">⚠ Risk göstergesi — <strong>deprem tahmini değildir</strong></div>
+  </header>
+
+  <main class="doc">
+    <a class="back" href="./index.html">← Haritaya dön</a>
+    <h1>Bu sayılar ne anlama geliyor (ve ne anlama gelmiyor)</h1>
+    <p>EyeQuake bir <strong>sismik risk istihbaratı</strong> aracıdır — gelecekteki bir
+       depremin zamanını, yerini veya büyüklüğünü <strong>tahmin etmez</strong>. Aşağıda her
+       katmanın bilimsel temeli ve sınırları dürüstçe açıklanmıştır.</p>
+
+    <div class="warn"><strong>Önemli:</strong> "düşük risk" ya da "az gözlenen aktivite"
+       <strong>güvenli demek değildir</strong>. Türkiye'nin büyük kısmı yüksek sismik risk
+       taşır; bu araç önlem almamak için bir gerekçe değildir.</div>
+
+    <h2><span class="tag ok">✅ Gerçek</span> Sismik risk haritası (hazard)</h2>
+    <p>1990–günümüz <strong>AFAD ulusal katalog</strong> (156.000+ olay) üzerinden, her
+       hücrenin geçmiş deprem aktivitesine göre Türkiye genelindeki <strong>yüzdelik
+       sıralaması</strong> (0–100). Bilinen fay sistemleriyle örtüşür. Olasılık değil,
+       tanımlayıcı göreli göstergedir — bu yüzden iddialı değildir ve doğrudur.</p>
+
+    <h2><span class="tag ok">✅ Gerçek</span> Zemin/saha kırılganlık (BIS)</h2>
+    <p>Açık yükseklik verisinden türetilen eğim → <strong>Vs30</strong> (Wald-Allen) →
+       zemin sınıfı (A–E) + büyütme faktörü. Bilinen jeolojiyle 5 kontrolün 4'ünde uyumlu
+       (Avcılar, Çukurova vb.). <strong>Sınır:</strong> ~bölgesel çözünürlük; mikrobölgeleme
+       yerine geçmez. <strong>Sıvılaşma</strong> yalnızca bir tarama göstergesidir —
+       jeoteknik değerlendirme değil, sondaj verisi içermez.</p>
+
+    <h2><span class="tag mid">⚠️ Mütevazı</span> Artçı aktivite beklentisi</h2>
+    <p>Büyük bir deprem sonrası, standart <strong>Reasenberg-Jones</strong> modeliyle
+       beklenen artçı sayısının kaba istatistiksel aralığı. <strong>Belirsizlik yüksektir</strong>
+       — sayılar birkaç kat değişebilir; bu yüzden tek sayı değil aralık gösterilir. Bu bir
+       <em>oran</em> beklentisidir, bir depremin gerçekleşeceği vaadi değil.</p>
+    <p>Not: Projenin kendi fitlediği temporal ETAS modeli süper-kritik (fiziksel-olmayan)
+       parametreler verdiği için <strong>panelde kullanılmaz</strong>; generic Reasenberg-Jones
+       operasyonel olarak daha savunulabilirdir.</p>
+
+    <h2><span class="tag no">❌ Mümkün değil</span> Deterministik deprem tahmini</h2>
+    <p>"Şu tarihte, şu yerde, şu büyüklükte deprem" — bunu test ettik ve <strong>kendi verimizle
+       reddettik</strong>: bir sonraki depremin büyüklüğü geçmişten tahmin edilemiyor (R²≈0,
+       Gutenberg-Richter beklentisiyle uyumlu). EyeQuake bunu <strong>vaat etmez</strong>.</p>
+
+    <h2>Veri & belirsizlik</h2>
+    <p>Birincil kaynak: <strong>AFAD</strong> ulusal katalog (b≈1.0, sağlam). Yükseklik:
+       açık servisler. Tüm skorlar tek bir tarihsel kataloğa dayanır; gelecekteki bir olayı
+       garanti etmez. Detaylı bulgular ve sınırlar:
+       <a href="https://github.com/Miraakbutnotded/Eyequake/blob/main/reports/FINDINGS.md"
+          target="_blank">reports/FINDINGS.md</a>.</p>
+
+    <a class="back" href="./index.html">← Haritaya dön</a>
+  </main>
+</body>
+</html>
