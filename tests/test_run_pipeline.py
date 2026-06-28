@@ -391,6 +391,24 @@ def test_assert_use_restriction_raises_on_affirmative_misuse():
         runner.assert_use_restriction({"use_restriction": "Fiyatlama için hazır"})
 
 
+def test_assert_use_restriction_rejects_not_substring_hole_turkish():
+    runner = _load_runner()
+    # "fiyatlama notu" embeds "not" inside "notu" — the dropped English needle
+    # let this affirmative misuse PASS. It must RAISE now.
+    with pytest.raises(runner.PipelineError, match="use_restriction"):
+        runner.assert_use_restriction({"use_restriction": "fiyatlama notu: skor hazır"})
+
+
+def test_assert_use_restriction_rejects_not_substring_hole_english():
+    runner = _load_runner()
+    # "rating note: ready for pricing" embeds "not" inside "note" — same hole,
+    # and the text literally says ready-for-pricing. It must RAISE.
+    with pytest.raises(runner.PipelineError, match="use_restriction"):
+        runner.assert_use_restriction(
+            {"use_restriction": "rating note: ready for pricing"}
+        )
+
+
 def test_validate_outputs_rejects_missing_use_restriction(tmp_path: Path):
     runner = _load_runner()
     root = _minimal_root(tmp_path)

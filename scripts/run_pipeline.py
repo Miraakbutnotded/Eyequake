@@ -125,12 +125,18 @@ def assert_use_restriction(meta: dict[str, Any]) -> None:
     machine-checked contract: the restriction text must mention rating/pricing AND
     explicitly negate it (must say it is NOT a rating input). A present-but-
     affirmative value (e.g. "fiyatlama için hazır") is rejected just like absence.
+
+    Negation is Turkish-only ("değil"/"degil"). An English "not" substring needle
+    was REMOVED: it is a false-negative hole — "fiyatlama notu" and "rating note:
+    ready for pricing" both embed "not" and would wrongly PASS. The copy is Turkish
+    and "değil" is word-ish (not a substring of değiş/değer/değişiklik), so it has
+    no analogous hole.
     """
     # Turkish-robust lowercase: str.lower() maps "İ" to "i"+combining-dot, which
     # would break a plain "değil" substring test; pre-map the dotted capital I.
     text = str(meta.get("use_restriction", "")).replace("İ", "i").lower()
     has_rating_marker = "rating" in text or "fiyatlama" in text
-    has_negation = "değil" in text or "degil" in text or "not" in text
+    has_negation = "değil" in text or "degil" in text
     if not (has_rating_marker and has_negation):
         raise PipelineError(
             "meta use_restriction must state the NOT-FOR-PRICING boundary "
