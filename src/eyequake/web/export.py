@@ -35,8 +35,8 @@ def cell_bins(lat, lon, region: Region, cell_deg: float):
 
 
 def build_cell_index(
-    df: pd.DataFrame, region: Region, cell_deg: float = 0.25,
-    min_mag: float = 4.0, recent_years: int = 10,
+    df: pd.DataFrame, region: Region, *, cell_deg: float = 0.25,
+    min_mag: float, recent_years: int = 10,
 ) -> pd.DataFrame:
     """Hücre başına oran, maks büyüklük, güncel aktivite ve göreli risk indeksi."""
     times = _to_utc(df["time"])

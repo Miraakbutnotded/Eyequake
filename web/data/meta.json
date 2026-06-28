@@ -4,6 +4,7 @@
   "region": "turkey",
   "cell_deg": 0.25,
   "min_mag": 3.0,
+  "mc": 2.85,
   "n_cells": 1886,
   "n_big_events": 27,
   "disclaimer": "Göreli sismik tehlike indeksi (0–100), geçmiş aktiviteye dayalı. Olasılık veya deprem tahmini DEĞİLDİR."

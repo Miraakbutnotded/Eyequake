@@ -15,6 +15,7 @@ import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
+from eyequake.analysis.seismology import magnitude_of_completeness  # noqa: E402
 from eyequake.config import PROCESSED_DIR, TURKEY, WEB_DATA_DIR  # noqa: E402
 from eyequake.web.export import (  # noqa: E402
     build_cell_index,
@@ -35,6 +36,10 @@ def main() -> int:
     hazard_gj = cells_to_geojson(cells, cell_deg=CELL_DEG)
     events_gj = events_to_geojson(df, min_mag=6.0)
 
+    # Mc (magnitude of completeness): MIN_MAG bunun üstünde olmalı, aksi halde
+    # tehlike yüzeyi sismisiteyi değil katalog raporlama yanlılığını modeller.
+    mc = magnitude_of_completeness(df["mag"].to_numpy(dtype=float))
+
     (WEB_DATA_DIR / "hazard_cells.geojson").write_text(
         json.dumps(hazard_gj), encoding="utf-8"
     )
@@ -53,6 +58,7 @@ def main() -> int:
         "region": TURKEY.name,
         "cell_deg": CELL_DEG,
         "min_mag": MIN_MAG,
+        "mc": mc,
         "n_cells": len(cells),
         "n_big_events": len(events_gj["features"]),
         "disclaimer": (

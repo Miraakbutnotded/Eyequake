@@ -11,6 +11,15 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+import numpy as np
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
+
+from eyequake.analysis.seismology import (  # noqa: E402
+    b_value_aki,
+    magnitude_of_completeness,
+)
+
 ROOT = Path(__file__).resolve().parents[1]
 PROCESSED_DIR = Path("data/processed")
 WEB_DATA_DIR = Path("web/data")
@@ -154,7 +163,7 @@ def validate_outputs(root: Path = ROOT, require_site_layer: bool = True) -> dict
         raise PipelineError(f"summary source must be AFAD, got {summary['source']!r}")
 
     meta = load_json(meta_path)
-    require_keys("meta", meta, {"source", "n_cells", "n_big_events", "disclaimer"})
+    require_keys("meta", meta, {"source", "n_cells", "n_big_events", "disclaimer", "mc"})
     if meta["source"] != "AFAD":
         raise PipelineError(f"meta source must be AFAD, got {meta['source']!r}")
     if "tahmini" not in str(meta["disclaimer"]).lower():
@@ -201,6 +210,98 @@ def validate_outputs(root: Path = ROOT, require_site_layer: bool = True) -> dict
     }
 
 
+def read_catalog_magnitudes(path: Path) -> np.ndarray:
+    """Read finite magnitudes from the processed catalog for completeness checks."""
+    require_file(path)
+    mags: list[float] = []
+    with path.open(newline="", encoding="utf-8") as handle:
+        reader = csv.DictReader(handle)
+        if not reader.fieldnames or "mag" not in reader.fieldnames:
+            raise PipelineError(f"Catalog missing 'mag' column: {path}")
+        for row in reader:
+            raw = row.get("mag")
+            if raw in (None, ""):
+                continue
+            try:
+                value = float(raw)
+            except ValueError:
+                continue
+            if value == value:  # drop NaN
+                mags.append(value)
+    if not mags:
+        raise PipelineError(f"Catalog has no usable magnitudes: {path}")
+    return np.asarray(mags, dtype=float)
+
+
+def assert_min_mag_complete(min_mag: float, mc: float) -> None:
+    """Surface threshold must sit at or above completeness; else bias, not seismicity."""
+    if min_mag < mc:
+        raise PipelineError(
+            f"min_mag ({min_mag}) Mc altında ({mc}); bu eşikte katalog tamamlanmamış, "
+            "tehlike yüzeyi sismisiteyi değil raporlama yanlılığını modeller."
+        )
+
+
+def assert_cell_deg_consistent(
+    meta_cell_deg: float, polygon_edge_deg: float, tol: float = 1e-6
+) -> None:
+    """meta cell_deg and the exported polygon edge must describe the same grid."""
+    if abs(float(meta_cell_deg) - float(polygon_edge_deg)) > tol:
+        raise PipelineError(
+            f"cell_deg tutarsız: meta {meta_cell_deg} vs poligon kenarı {polygon_edge_deg}"
+        )
+
+
+def polygon_edge_deg(feature: dict[str, Any]) -> float:
+    """Longitude span (max(x) - min(x)) of the first polygon ring, rounded to 6."""
+    geometry = feature.get("geometry")
+    if not isinstance(geometry, dict):
+        raise PipelineError("hazard feature missing geometry")
+    coordinates = geometry.get("coordinates")
+    if not isinstance(coordinates, list) or not coordinates:
+        raise PipelineError("hazard feature missing polygon coordinates")
+    ring = coordinates[0]
+    if not isinstance(ring, list) or len(ring) < 2:
+        raise PipelineError("hazard feature has invalid polygon ring")
+    xs = [float(point[0]) for point in ring]
+    return round(max(xs) - min(xs), 6)
+
+
+def validate_science(root: Path = ROOT) -> dict[str, Any]:
+    """Numerical/scientific consistency gate over the exported hazard surface.
+
+    Enforces three things string/key checks cannot: (1) the surface threshold
+    (meta.min_mag) is at or above magnitude-of-completeness Mc, (2) the meta grid
+    size matches the exported polygon edge, (3) the catalog b-value is physically
+    plausible (~1). Any violation is a real scientific defect, not a formatting one.
+    """
+    processed = root / PROCESSED_DIR
+    web_data = root / WEB_DATA_DIR
+
+    mags = read_catalog_magnitudes(processed / "turkey_catalog.csv")
+    if mags.size < 2:
+        raise PipelineError("Bilimsel kapı için yeterli büyüklük yok (n<2)")
+
+    meta = load_json(web_data / "meta.json")
+    require_keys("meta", meta, {"min_mag", "cell_deg"})
+    min_mag = float(meta["min_mag"])
+    cell_deg = float(meta["cell_deg"])
+
+    mc = magnitude_of_completeness(mags)
+    assert_min_mag_complete(min_mag, mc)
+
+    feature = first_feature(web_data / "hazard_cells.geojson")
+    assert_cell_deg_consistent(cell_deg, polygon_edge_deg(feature))
+
+    bv = b_value_aki(mags, mc).b
+    if not 0.6 <= bv <= 1.4:
+        raise PipelineError(
+            f"b-değeri ({bv}) makul aralık dışında (0.6–1.4); katalog ya da Mc şüpheli."
+        )
+
+    return {"mc": mc, "b_value": bv, "min_mag": min_mag, "cell_deg": cell_deg}
+
+
 def run_step(step: Step, root: Path = ROOT) -> None:
     print(f"\n==> {step.name}")
     print(" ".join(step.command))
@@ -216,6 +317,10 @@ def print_summary(summary: dict[str, Any], options: PipelineOptions) -> None:
     print(f"date_range: {summary['date_range']}")
     print(f"hazard_cells: {summary['hazard_cells']}")
     print(f"big_events: {summary['big_events']}")
+    print(f"mc: {summary['mc']}")
+    print(f"b_value: {summary['b_value']}")
+    print(f"min_mag: {summary['min_mag']} (>= Mc)")
+    print(f"cell_deg: {summary['cell_deg']}")
     print(f"site_layer_required: {not options.skip_site_layer}")
 
 
@@ -229,6 +334,7 @@ def main(argv: list[str] | None = None) -> int:
             run_step(step)
         if options.export_web or options.check:
             summary = validate_outputs(ROOT, require_site_layer=not options.skip_site_layer)
+            summary.update(validate_science(ROOT))
             print_summary(summary, options)
         else:
             print("\nPipeline finished. Use --export-web to validate web outputs.")
