@@ -9,6 +9,8 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
+from eyequake.integrity import scan_text
+
 WEB = Path(__file__).resolve().parents[1] / "web"
 
 
@@ -65,6 +67,13 @@ def test_web_exposes_afad_multi_signal_risk_model():
         assert f'id="{dom_id}"' in html
     for prop in ["energy_index", "recency_days", "shallow_fraction", "risk_model"]:
         assert prop in app
+
+
+def test_outward_web_copy_has_no_positive_banned_claim():
+    # Yasaklı ifadeler web'de yalnızca negatif/disclaimer biçiminde olmalı (POSITIONING).
+    for name in ("index.html", "methodology.html"):
+        hits = scan_text(_read(name))
+        assert hits == [], f"{name} pozitif yasaklı-iddia içeriyor: {[h.phrase for h in hits]}"
 
 
 def main() -> int:
