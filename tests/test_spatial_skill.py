@@ -7,6 +7,8 @@ yoğunlaştırıyor mu?
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -17,6 +19,12 @@ from eyequake.forecast.spatial_skill import (
     evaluate_surface_skill,
     spatial_concentration_gain,
 )
+
+# Served-surface params (scripts/06_export_web_data.py): the skill claim shipped to
+# the product is measured at THESE values, not the build_cell_index defaults.
+SERVED_MIN_MAG = 3.0
+SERVED_CELL_DEG = 0.25
+CATALOG_PATH = Path(__file__).resolve().parents[1] / "data" / "processed" / "turkey_catalog.csv"
 
 # --- area_skill_score: yoğunlaşma uçları ---
 
@@ -181,3 +189,31 @@ def test_test_events_outside_train_cells_returns_none():
     assert result["n_test_events"] == 0
     assert result["area_skill_score"] is None
     assert result["gain_top25"] is None
+
+
+# --- Real served-surface regression: the SHIPPED surface beats area-uniform Poisson ---
+
+
+def test_real_catalog_served_surface_beats_baseline():
+    """The real AFAD surface, at the SERVED params (M≥3.0, 0.25°), must have skill > 0.
+
+    This is the empirical anchor behind the stamped meta.area_skill_score and the
+    validate_science gate. The catalog is .gitignored (data/processed/) — skip when
+    absent (e.g. CI), where the gate logic is covered by synthetic-catalog tests and
+    the committed-surface contract. CRITICAL: measured at min_mag=3.0 (scripts/06
+    MIN_MAG), not the build_cell_index default — a wrong threshold measures a
+    different surface.
+    """
+    if not CATALOG_PATH.exists():
+        pytest.skip(f"Katalog yok (gitignored): {CATALOG_PATH}")
+
+    df = pd.read_csv(CATALOG_PATH, parse_dates=["time"])
+    result = evaluate_surface_skill(
+        df, TURKEY, min_mag=SERVED_MIN_MAG, cell_deg=SERVED_CELL_DEG
+    )
+
+    assert result["n_test_events"] > 0
+    assert result["area_skill_score"] is not None
+    # Surface genuinely concentrates future events better than a uniform baseline.
+    assert result["area_skill_score"] > 0
+    assert result["gain_top25"] > 1.0

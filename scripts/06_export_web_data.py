@@ -17,6 +17,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from eyequake.analysis.seismology import magnitude_of_completeness  # noqa: E402
 from eyequake.config import PROCESSED_DIR, TURKEY, WEB_DATA_DIR  # noqa: E402
+from eyequake.forecast.spatial_skill import evaluate_surface_skill  # noqa: E402
 from eyequake.web.export import (  # noqa: E402
     build_cell_index,
     cells_to_geojson,
@@ -40,6 +41,13 @@ def main() -> int:
     # tehlike yüzeyi sismisiteyi değil katalog raporlama yanlılığını modeller.
     mc = magnitude_of_completeness(df["mag"].to_numpy(dtype=float))
 
+    # Servis edilen yüzeyin ölçülmüş zaman-dışı (out-of-time) beceri provenance'ı:
+    # eğitim penceresinden kurulan yüzey, GELECEK depremleri alan-uniform (Poisson)
+    # baseline'a göre yoğunlaştırıyor mu? area_skill_score > 0 → baseline'ı yeniyor.
+    # SERVİS PARAMETRELERİNDE (MIN_MAG/CELL_DEG) hesaplanır; deterministik (RNG yok).
+    # Tanımlayıcı bir beceri ölçüsüdür — deprem tahmini DEĞİLDİR.
+    skill = evaluate_surface_skill(df, TURKEY, min_mag=MIN_MAG, cell_deg=CELL_DEG)
+
     (WEB_DATA_DIR / "hazard_cells.geojson").write_text(
         json.dumps(hazard_gj), encoding="utf-8"
     )
@@ -59,6 +67,9 @@ def main() -> int:
         "cell_deg": CELL_DEG,
         "min_mag": MIN_MAG,
         "mc": mc,
+        "area_skill_score": skill["area_skill_score"],
+        "gain_top25": skill["gain_top25"],
+        "n_test_events": skill["n_test_events"],
         "n_cells": len(cells),
         "n_big_events": len(events_gj["features"]),
         "disclaimer": (
@@ -74,7 +85,11 @@ def main() -> int:
         json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8"
     )
 
-    print(f"Hücre: {len(cells)} | büyük olay: {meta['n_big_events']}")
+    print(
+        f"Hücre: {len(cells)} | büyük olay: {meta['n_big_events']} | "
+        f"area_skill_score: {skill['area_skill_score']} "
+        f"(gain_top25 {skill['gain_top25']}, n_test {skill['n_test_events']})"
+    )
     print("En riskli 5 hücre:")
     print(cells[["lat", "lon", "risk_index", "annual_rate", "max_mag", "n_recent"]]
           .head(5).to_string(index=False))
