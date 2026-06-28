@@ -58,6 +58,15 @@ def test_etas_panel_not_called_etas():
     assert "Artçı Aktivite Beklentisi" in _read("index.html")
 
 
+def test_web_exposes_afad_multi_signal_risk_model():
+    html = _read("index.html")
+    app = _read("app.js")
+    for dom_id in ["mEnergy", "mRecency", "mShallow", "mRiskModel"]:
+        assert f'id="{dom_id}"' in html
+    for prop in ["energy_index", "recency_days", "shallow_fraction", "risk_model"]:
+        assert prop in app
+
+
 def main() -> int:
     tests = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
     failed = 0

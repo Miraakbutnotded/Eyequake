@@ -61,6 +61,10 @@ function fmt(n, d = 2) {
   return Number(n).toLocaleString("tr-TR", { maximumFractionDigits: d });
 }
 
+function hasValue(v) {
+  return v !== null && v !== undefined && Number.isFinite(Number(v));
+}
+
 function etasExpected(mainMag, minMag, t1Days, t2Days) {
   const { a, b, p, c } = RJ;
   const prod     = Math.pow(10, a + b * (mainMag - minMag));
@@ -124,14 +128,23 @@ function showCell(props, latlng) {
   document.getElementById("mMax").textContent    = `M ${fmt(props.max_mag, 1)}`;
   document.getElementById("mN").textContent      = props.n_events;
   document.getElementById("mRecent").textContent = `${props.n_recent} olay`;
+  document.getElementById("mEnergy").textContent =
+    hasValue(props.energy_index) ? `log10 ${fmt(props.energy_index, 2)}` : "—";
+  document.getElementById("mRecency").textContent =
+    hasValue(props.recency_days) ? `${fmt(props.recency_days, 0)} gün önce` : "—";
+  document.getElementById("mShallow").textContent =
+    hasValue(props.shallow_fraction) ? `%${fmt(props.shallow_fraction * 100, 0)}` : "—";
+  document.getElementById("mRiskModel").textContent =
+    props.risk_model === "v2_afad_multi_signal" ? "AFAD çok-sinyalli v2" : (props.risk_model || "—");
   document.getElementById("mSiteClass").textContent =
     props.site_class ? `${props.site_class} (Vs30 ${props.vs30})` : "—";
   document.getElementById("mAmp").textContent = props.amp ? `${fmt(props.amp, 2)}×` : "—";
   document.getElementById("mLiq").textContent = props.liq_class || "—";
   document.getElementById("mSiteRisk").textContent = props.site_risk ?? "—";
   document.getElementById("note").textContent    =
-    "Bu indeks geçmiş (1990+) deprem aktivitesinin Türkiye genelindeki yüzdelik " +
-    "sıralamasıdır. Gelecekteki bir depremin zamanını/büyüklüğünü tahmin etmez.";
+    "Bu v2 indeks AFAD geçmişinden türetilen oran, büyüklük, enerji, güncellik, " +
+    "sığlık ve saha sinyallerinin Türkiye genelindeki yüzdelik sıralamasıdır. " +
+    "Gelecekteki bir depremin zamanını/büyüklüğünü tahmin etmez.";
 }
 
 // --- Recent event panel ---

@@ -46,10 +46,23 @@ def build_cell_index(
     sub = df[df["mag"] >= min_mag].copy()
     sub["time"] = _to_utc(sub["time"])
     sub["lat_bin"], sub["lon_bin"] = cell_bins(sub["latitude"], sub["longitude"], region, cell_deg)
+    if "depth" in sub.columns:
+        sub["depth"] = pd.to_numeric(sub["depth"], errors="coerce").fillna(999.0)
+    else:
+        sub["depth"] = pd.Series(999.0, index=sub.index)
+    sub["energy_proxy"] = np.power(10.0, 1.5 * sub["mag"])
+    sub["is_shallow"] = sub["depth"] <= 15.0
 
     agg = (
         sub.groupby(["lat_bin", "lon_bin"])
-        .agg(n_events=("mag", "size"), max_mag=("mag", "max"))
+        .agg(
+            n_events=("mag", "size"),
+            max_mag=("mag", "max"),
+            mean_depth=("depth", "mean"),
+            shallow_fraction=("is_shallow", "mean"),
+            energy_sum=("energy_proxy", "sum"),
+            last_event=("time", "max"),
+        )
         .reset_index()
     )
     recent = (
@@ -60,13 +73,35 @@ def build_cell_index(
     cells["n_recent"] = cells["n_recent"].fillna(0).astype(int)
 
     cells["annual_rate"] = (cells["n_events"] / catalog_years).round(4)
+    cells["recent_rate"] = (cells["n_recent"] / recent_years).round(4)
+    cells["recency_days"] = (
+        (times.max() - cells["last_event"]).dt.total_seconds() / 86_400.0
+    ).round(1)
+    cells["energy_index"] = np.log10(cells["energy_sum"]).round(2)
+    cells["mean_depth"] = cells["mean_depth"].round(1)
+    cells["shallow_fraction"] = cells["shallow_fraction"].round(3)
     cells["lat"] = region.min_lat + (cells["lat_bin"] + 0.5) * cell_deg
     cells["lon"] = region.min_lon + (cells["lon_bin"] + 0.5) * cell_deg
 
-    # Göreli indeks: oran (log) ve maks büyüklük yüzdeliklerinin ağırlıklı bileşimi.
-    rate_pct = cells["annual_rate"].rank(pct=True)
-    mag_pct = cells["max_mag"].rank(pct=True)
-    cells["risk_index"] = (100 * (0.6 * rate_pct + 0.4 * mag_pct)).round(0).astype(int)
+    # v2 AFAD multi-signal risk: tanımlayıcı hücre sıralaması, deprem tahmini değil.
+    cells["risk_rate_component"] = cells["annual_rate"].rank(pct=True)
+    cells["risk_magnitude_component"] = cells["max_mag"].rank(pct=True)
+    cells["risk_recent_component"] = cells["recent_rate"].rank(pct=True)
+    cells["risk_energy_component"] = cells["energy_index"].rank(pct=True)
+    cells["risk_recency_component"] = (-cells["recency_days"]).rank(pct=True)
+    cells["risk_shallow_component"] = cells["shallow_fraction"].rank(pct=True)
+    cells["risk_index"] = (
+        100
+        * (
+            0.22 * cells["risk_rate_component"]
+            + 0.18 * cells["risk_magnitude_component"]
+            + 0.18 * cells["risk_recent_component"]
+            + 0.18 * cells["risk_energy_component"]
+            + 0.16 * cells["risk_recency_component"]
+            + 0.08 * cells["risk_shallow_component"]
+        )
+    ).round(0).astype(int)
+    cells["risk_model"] = "v2_afad_multi_signal"
 
     return cells.sort_values("risk_index", ascending=False).reset_index(drop=True)
 
@@ -86,8 +121,20 @@ def cells_to_geojson(cells: pd.DataFrame, cell_deg: float = 0.25) -> dict:
             "type": "Feature",
             "geometry": {"type": "Polygon", "coordinates": poly},
             "properties": {
+                "risk_model": str(r.get("risk_model", "v2_afad_multi_signal")),
                 "risk_index": int(r["risk_index"]),
                 "annual_rate": float(r["annual_rate"]),
+                "recent_rate": float(r.get("recent_rate", 0.0)),
+                "recency_days": float(r.get("recency_days", 0.0)),
+                "energy_index": float(r.get("energy_index", 0.0)),
+                "mean_depth": float(r.get("mean_depth", 0.0)),
+                "shallow_fraction": float(r.get("shallow_fraction", 0.0)),
+                "risk_rate_component": round(float(r.get("risk_rate_component", 0.0)), 3),
+                "risk_magnitude_component": round(float(r.get("risk_magnitude_component", 0.0)), 3),
+                "risk_recent_component": round(float(r.get("risk_recent_component", 0.0)), 3),
+                "risk_energy_component": round(float(r.get("risk_energy_component", 0.0)), 3),
+                "risk_recency_component": round(float(r.get("risk_recency_component", 0.0)), 3),
+                "risk_shallow_component": round(float(r.get("risk_shallow_component", 0.0)), 3),
                 "max_mag": round(float(r["max_mag"]), 1),
                 "n_events": int(r["n_events"]),
                 "n_recent": int(r["n_recent"]),
