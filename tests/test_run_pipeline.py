@@ -339,3 +339,16 @@ def test_validate_science_raises_when_cell_deg_mismatch(tmp_path: Path):
 
     with pytest.raises(runner.PipelineError, match="cell_deg"):
         runner.validate_science(root)
+
+
+def test_validate_science_raises_when_stamped_mc_drifts(tmp_path: Path):
+    runner = _load_runner()
+    # min_mag stays valid; only the displayed meta.mc is corrupted to a wrong value.
+    root = _science_root(tmp_path)
+    meta_path = root / "web" / "data" / "meta.json"
+    meta = json.loads(meta_path.read_text(encoding="utf-8"))
+    meta["mc"] = 5.0
+    meta_path.write_text(json.dumps(meta), encoding="utf-8")
+
+    with pytest.raises(runner.PipelineError, match="provenance"):
+        runner.validate_science(root)

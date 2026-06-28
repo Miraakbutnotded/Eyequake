@@ -270,10 +270,18 @@ def polygon_edge_deg(feature: dict[str, Any]) -> float:
 def validate_science(root: Path = ROOT) -> dict[str, Any]:
     """Numerical/scientific consistency gate over the exported hazard surface.
 
-    Enforces three things string/key checks cannot: (1) the surface threshold
+    Enforces what string/key checks cannot: (1) the surface threshold
     (meta.min_mag) is at or above magnitude-of-completeness Mc, (2) the meta grid
     size matches the exported polygon edge, (3) the catalog b-value is physically
-    plausible (~1). Any violation is a real scientific defect, not a formatting one.
+    plausible (~1), (4) the displayed meta.mc matches the freshly-computed Mc
+    (provenance drift guard). Any violation is a real scientific defect.
+
+    Known limitation: min_mag is READ from meta and checked against Mc, but is
+    NOT independently derived from the surface (unlike cell_deg, which is derived
+    from the polygon edge). It is consistent today only because scripts/06 writes
+    both meta and surface from the single MIN_MAG constant; a true surface-stamped
+    min_mag is deferred to Faz-1 surface-versioning (end-to-end design doc,
+    scoring-engine layer).
     """
     processed = root / PROCESSED_DIR
     web_data = root / WEB_DATA_DIR
@@ -297,6 +305,14 @@ def validate_science(root: Path = ROOT) -> dict[str, Any]:
     if not 0.6 <= bv <= 1.4:
         raise PipelineError(
             f"b-değeri ({bv}) makul aralık dışında (0.6–1.4); katalog ya da Mc şüpheli."
+        )
+
+    # meta.mc is a display/provenance value; catch silent drift from the real Mc.
+    stamped_mc = meta.get("mc")
+    if stamped_mc is not None and abs(float(stamped_mc) - mc) > 0.05:
+        raise PipelineError(
+            f"meta.mc ({stamped_mc}) katalogdan hesaplanan Mc ({mc}) ile uyuşmuyor "
+            "(provenance drift)."
         )
 
     return {"mc": mc, "b_value": bv, "min_mag": min_mag, "cell_deg": cell_deg}
