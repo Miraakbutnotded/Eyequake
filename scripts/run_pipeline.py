@@ -116,6 +116,28 @@ def require_keys(label: str, payload: dict[str, Any], keys: set[str]) -> None:
         raise PipelineError(f"{label} missing required keys: {', '.join(missing)}")
 
 
+def assert_use_restriction(meta: dict[str, Any]) -> None:
+    """E&O / liability guard: meta must declare the NOT-FOR-PRICING boundary.
+
+    The score is a RELATIVE descriptive percentile index, not calibrated to
+    absolute loss. Selling it to insurers is fine; letting it be used as a direct
+    premium-rating cat model is an E&O exposure. This encodes that boundary as a
+    machine-checked contract: the restriction text must mention rating/pricing AND
+    explicitly negate it (must say it is NOT a rating input). A present-but-
+    affirmative value (e.g. "fiyatlama için hazır") is rejected just like absence.
+    """
+    # Turkish-robust lowercase: str.lower() maps "İ" to "i"+combining-dot, which
+    # would break a plain "değil" substring test; pre-map the dotted capital I.
+    text = str(meta.get("use_restriction", "")).replace("İ", "i").lower()
+    has_rating_marker = "rating" in text or "fiyatlama" in text
+    has_negation = "değil" in text or "degil" in text or "not" in text
+    if not (has_rating_marker and has_negation):
+        raise PipelineError(
+            "meta use_restriction must state the NOT-FOR-PRICING boundary "
+            "(premium rating / fiyatlama için doğrudan girdi DEĞİLDİR)."
+        )
+
+
 def first_feature(path: Path) -> dict[str, Any]:
     payload = load_json(path)
     if payload.get("type") != "FeatureCollection":
@@ -163,7 +185,12 @@ def validate_outputs(root: Path = ROOT, require_site_layer: bool = True) -> dict
         raise PipelineError(f"summary source must be AFAD, got {summary['source']!r}")
 
     meta = load_json(meta_path)
-    require_keys("meta", meta, {"source", "n_cells", "n_big_events", "disclaimer", "mc"})
+    require_keys(
+        "meta",
+        meta,
+        {"source", "n_cells", "n_big_events", "disclaimer", "mc", "use_restriction"},
+    )
+    assert_use_restriction(meta)
     if meta["source"] != "AFAD":
         raise PipelineError(f"meta source must be AFAD, got {meta['source']!r}")
     if "tahmini" not in str(meta["disclaimer"]).lower():

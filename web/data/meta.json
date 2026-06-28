@@ -7,5 +7,6 @@
   "mc": 2.85,
   "n_cells": 1886,
   "n_big_events": 27,
-  "disclaimer": "Göreli sismik tehlike indeksi (0–100), geçmiş aktiviteye dayalı. Olasılık veya deprem tahmini DEĞİLDİR."
+  "disclaimer": "Göreli sismik tehlike indeksi (0–100), geçmiş aktiviteye dayalı. Olasılık veya deprem tahmini DEĞİLDİR.",
+  "use_restriction": "Göreli triage / portföy sıralama / accumulation control. Absolute loss'a kalibre DEĞİL — premium rating için doğrudan girdi DEĞİLDİR."
 }

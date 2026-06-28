@@ -65,6 +65,10 @@ def main() -> int:
             "Göreli sismik tehlike indeksi (0–100), geçmiş aktiviteye dayalı. "
             "Olasılık veya deprem tahmini DEĞİLDİR."
         ),
+        "use_restriction": (
+            "Göreli triage / portföy sıralama / accumulation control. "
+            "Absolute loss'a kalibre DEĞİL — premium rating için doğrudan girdi DEĞİLDİR."
+        ),
     }
     (WEB_DATA_DIR / "meta.json").write_text(
         json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8"

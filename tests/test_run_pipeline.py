@@ -59,6 +59,10 @@ def _minimal_root(tmp_path: Path) -> Path:
             "n_cells": 1,
             "n_big_events": 1,
             "disclaimer": "Göreli sismik tehlike indeksi; deprem tahmini DEĞİLDİR.",
+            "use_restriction": (
+                "Göreli triage / portföy sıralama. "
+                "Premium rating için doğrudan girdi DEĞİLDİR."
+            ),
         },
     )
     _write_json(
@@ -230,6 +234,10 @@ def _science_root(tmp_path: Path, *, min_mag: float = 2.5, cell_deg: float = 0.5
             "n_cells": 1,
             "n_big_events": 0,
             "disclaimer": "Göreli sismik tehlike indeksi; deprem tahmini DEĞİLDİR.",
+            "use_restriction": (
+                "Göreli triage / portföy sıralama. "
+                "Premium rating için doğrudan girdi DEĞİLDİR."
+            ),
         },
     )
     half = cell_deg / 2.0
@@ -352,3 +360,44 @@ def test_validate_science_raises_when_stamped_mc_drifts(tmp_path: Path):
 
     with pytest.raises(runner.PipelineError, match="provenance"):
         runner.validate_science(root)
+
+
+# --- NOT-FOR-PRICING usage restriction gate (E&O / liability guard) ---
+
+
+def test_assert_use_restriction_passes_for_not_for_rating_string():
+    runner = _load_runner()
+    # The real export string: relative triage, explicitly NOT a rating input.
+    runner.assert_use_restriction(
+        {
+            "use_restriction": (
+                "Göreli triage / portföy sıralama / accumulation control. "
+                "Absolute loss'a kalibre DEĞİL — premium rating için doğrudan girdi DEĞİLDİR."
+            )
+        }
+    )
+
+
+def test_assert_use_restriction_raises_when_absent():
+    runner = _load_runner()
+    with pytest.raises(runner.PipelineError, match="use_restriction"):
+        runner.assert_use_restriction({})
+
+
+def test_assert_use_restriction_raises_on_affirmative_misuse():
+    runner = _load_runner()
+    # Rating marker present but NO negation: implies the score IS ready for pricing.
+    with pytest.raises(runner.PipelineError, match="use_restriction"):
+        runner.assert_use_restriction({"use_restriction": "Fiyatlama için hazır"})
+
+
+def test_validate_outputs_rejects_missing_use_restriction(tmp_path: Path):
+    runner = _load_runner()
+    root = _minimal_root(tmp_path)
+    meta_path = root / "web" / "data" / "meta.json"
+    meta = json.loads(meta_path.read_text(encoding="utf-8"))
+    del meta["use_restriction"]
+    meta_path.write_text(json.dumps(meta), encoding="utf-8")
+
+    with pytest.raises(runner.PipelineError, match="use_restriction"):
+        runner.validate_outputs(root, require_site_layer=True)
