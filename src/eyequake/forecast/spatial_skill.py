@@ -17,12 +17,26 @@ import numpy as np
 import pandas as pd
 
 from ..config import Region
-from ..web.export import _to_utc, build_cell_index
+from ..web.export import _to_utc, build_cell_index, cell_bins
 
 try:  # numpy 2.4+ : np.trapz tamamen kaldırıldı, np.trapezoid ile değiştirildi
     from numpy import trapezoid as _trapz
 except ImportError:  # daha eski numpy sürümleri
     from numpy import trapz as _trapz
+
+
+def _coerce_counts(counts_sorted_by_risk: np.ndarray) -> np.ndarray:
+    """float diziye çevirir; NaN/inf ve negatif değerleri reddeder.
+
+    `total <= 0` koruması NaN'i kaçırır (NaN karşılaştırmaları False döner) ve
+    negatifleri yakalamaz; bu yüzden sayım vektörü önce burada doğrulanır.
+    """
+    counts = np.asarray(counts_sorted_by_risk, dtype=float)
+    if not np.all(np.isfinite(counts)):
+        raise ValueError("Sonlu olmayan (NaN/inf) olay sayısı geçersiz.")
+    if np.any(counts < 0):
+        raise ValueError("Negatif olay sayısı geçersiz.")
+    return counts
 
 
 def area_skill_score(counts_sorted_by_risk: np.ndarray) -> float:
@@ -40,10 +54,18 @@ def area_skill_score(counts_sorted_by_risk: np.ndarray) -> float:
     Önemli: sonlu n için skorun TAVANI tam 1.0 değil, (n-1)/n'dir (Gini sınırı) —
     tüm olaylar tek hücrede toplansa bile. Örn. n=8 için tavan 7/8 = 0.875.
 
-    Toplam olay sayısı pozitif değilse ValueError yükseltir. Tanımlayıcı beceri
-    ölçüsü; deprem tahmini değildir.
+    Bu, simetrik Lorenz/Gini ölçüsüdür; Zechar-Jordan (2008) Molchan Area Skill
+    Score DEĞİLDİR ve istatistiksel anlamlılık iddia ETMEZ — anlamlılık ayrı bir
+    bootstrap testi gerektirir.
+
+    Sıralama varsayımı: risk_index 0–100 arası tamsayıya yuvarlanır, dolayısıyla
+    hücreler eşitlenebilir (tie); eşitlik içindeki sıralama keyfîdir ve skoru hafif
+    kaydırabilir — belgelenmiş bir varsayım, garanti değil.
+
+    NaN/inf, negatif ya da toplamı pozitif olmayan girdide ValueError yükseltir.
+    Tanımlayıcı beceri ölçüsü; deprem tahmini değildir.
     """
-    counts = np.asarray(counts_sorted_by_risk, dtype=float)
+    counts = _coerce_counts(counts_sorted_by_risk)
     total = counts.sum()
     if total <= 0:
         raise ValueError("area_skill_score: toplam olay sayısı pozitif olmalı")
@@ -60,13 +82,18 @@ def spatial_concentration_gain(
     """En riskli `area_fraction` alanının yoğunlaşma kazancı (concentration gain).
 
     En yüksek riskli k = max(1, round(area_fraction * n)) hücrenin yakaladığı olay
-    oranının, kapladığı alan oranına bölümü. 1.0 = alan-uniform baseline (yakalanan
-    oran = alan oranı); >1 baseline-üstü yoğunlaşma; <1 baseline-altı.
+    oranının, bu hücrelerin GERÇEKLEŞEN alan oranına (k / n) bölümü. 1.0 = alan-
+    uniform baseline (yakalanan oran = alan oranı); >1 baseline-üstü yoğunlaşma;
+    <1 baseline-altı.
 
-    Toplam olay <= 0 ya da area_fraction (0, 1] dışındaysa ValueError. Tanımlayıcı
-    ölçü; deprem tahmini değildir.
+    Not: tabana `area_fraction` değil k/n yazılır — yuvarlama nedeniyle k/n ≠
+    area_fraction olabilir; istenen oranla bölmek sıfır-beceri uniform alanı yanlış
+    şekilde 1.0'dan saptırırdı.
+
+    NaN/inf, negatif, toplamı <= 0 ya da area_fraction (0, 1] dışındaysa ValueError.
+    Tanımlayıcı ölçü; deprem tahmini değildir.
     """
-    counts = np.asarray(counts_sorted_by_risk, dtype=float)
+    counts = _coerce_counts(counts_sorted_by_risk)
     total = float(counts.sum())
     if total <= 0:
         raise ValueError("spatial_concentration_gain: toplam olay sayısı pozitif olmalı")
@@ -75,7 +102,7 @@ def spatial_concentration_gain(
     n = counts.size
     k = max(1, round(area_fraction * n))
     captured = float(counts[:k].sum()) / total
-    return round(captured / area_fraction, 4)
+    return round(captured / (k / n), 4)
 
 
 def evaluate_surface_skill(
@@ -100,6 +127,10 @@ def evaluate_surface_skill(
     olayı düşmezse skill ve gain None döner. Eğitim veya test penceresi boşsa
     ValueError yükseltir.
 
+    Sıralama varsayımı: hücreler tamsayı risk_index'e (0–100) göre sıralanır,
+    eşitlikler (tie) mümkündür ve eşitlik içi sıra keyfîdir; skoru hafif
+    kaydırabilir — belgelenmiş varsayım, garanti değil.
+
     Tanımlayıcı beceri ölçüsü — deprem tahmini değildir.
     """
     if df.empty:
@@ -117,8 +148,9 @@ def evaluate_surface_skill(
     n_train_cells = int(len(cells))
 
     test_sub = test[test["mag"] >= min_mag]
-    test_lat_bin = np.floor((test_sub["latitude"] - region.min_lat) / cell_deg).astype(int)
-    test_lon_bin = np.floor((test_sub["longitude"] - region.min_lon) / cell_deg).astype(int)
+    test_lat_bin, test_lon_bin = cell_bins(
+        test_sub["latitude"], test_sub["longitude"], region, cell_deg
+    )
     test_counts = (
         pd.DataFrame({"lat_bin": test_lat_bin, "lon_bin": test_lon_bin})
         .groupby(["lat_bin", "lon_bin"])

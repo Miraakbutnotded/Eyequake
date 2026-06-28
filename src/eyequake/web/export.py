@@ -22,6 +22,18 @@ def _to_utc(series: pd.Series) -> pd.Series:
     return pd.to_datetime(series, utc=True, format="ISO8601")
 
 
+def cell_bins(lat, lon, region: Region, cell_deg: float):
+    """(lat, lon) → bölge köşesine göre tamsayı ızgara indeksleri (floor bölme).
+
+    Üretici (`build_cell_index`) ve tüketici (`forecast.spatial_skill.
+    evaluate_surface_skill`) AYNI hücre tanımını paylaşsın diye tek kaynak;
+    aksi halde ızgaraları sessizce ıraksayıp beceri ölçümünü bozabilirdi.
+    """
+    lat_bin = np.floor((lat - region.min_lat) / cell_deg).astype(int)
+    lon_bin = np.floor((lon - region.min_lon) / cell_deg).astype(int)
+    return lat_bin, lon_bin
+
+
 def build_cell_index(
     df: pd.DataFrame, region: Region, cell_deg: float = 0.25,
     min_mag: float = 4.0, recent_years: int = 10,
@@ -33,8 +45,7 @@ def build_cell_index(
 
     sub = df[df["mag"] >= min_mag].copy()
     sub["time"] = _to_utc(sub["time"])
-    sub["lat_bin"] = np.floor((sub["latitude"] - region.min_lat) / cell_deg).astype(int)
-    sub["lon_bin"] = np.floor((sub["longitude"] - region.min_lon) / cell_deg).astype(int)
+    sub["lat_bin"], sub["lon_bin"] = cell_bins(sub["latitude"], sub["longitude"], region, cell_deg)
 
     agg = (
         sub.groupby(["lat_bin", "lon_bin"])
