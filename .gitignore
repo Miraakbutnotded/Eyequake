@@ -3,12 +3,16 @@
 __pycache__/
 *.py[cod]
 *.egg-info/
+.coverage
+htmlcov/
 .ipynb_checkpoints/
 
 # Data (regenerated from source APIs — not versioned)
 data/raw/
 data/processed/
 reports/figures/
+web/data/live_events.geojson
+web/data/live_meta.json
 
 # OS / editor
 .DS_Store
