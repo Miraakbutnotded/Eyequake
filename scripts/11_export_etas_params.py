@@ -47,6 +47,38 @@ def main() -> int:
     bval = b_value_aki(m, magnitude_of_completeness(m)).b
     n = branching_ratio(params, bval)
 
+    if n is None:
+        warning = (
+            "Dallanma oranı tanımsız (α≥β, kritiklik hesaplanamıyor). YALNIZCA "
+            "tanı göstergesi; per-olay artçı forecast için kullanılmaz. "
+            "Bkz. reports/FINDINGS.md."
+        )
+        why_not_canonical = (
+            "Web artçı paneli generic R-J kullanır — projenin temporal ETAS "
+            "fit'inde dallanma oranı tanımsız çıktığı için operasyonel olarak "
+            "daha savunulabilir."
+        )
+    elif n > 1.0:
+        warning = (
+            "Süper-kritik (n≫1, fiziksel-olmayan). YALNIZCA tanı göstergesi; "
+            "per-olay artçı forecast için kullanılmaz. Bkz. reports/FINDINGS.md."
+        )
+        why_not_canonical = (
+            "Web artçı paneli, projenin temporal ETAS fit'i süper-kritik (n≫1) "
+            "olduğu için generic R-J kullanır — operasyonel olarak daha savunulabilir."
+        )
+    else:
+        warning = (
+            f"Alt-kritik (n={round(n, 3)}, fiziksel olarak makul) ama tek train/test "
+            "split fit'i — YALNIZCA tanı göstergesi; production per-olay artçı "
+            "forecast için doğrulanmamış. Bkz. reports/FINDINGS.md."
+        )
+        why_not_canonical = (
+            "Web artçı paneli generic R-J kullanır — kanonik ETAS fit'i alt-kritik "
+            "çıksa da tek split'lik bir tanı fit'i, operasyonel artçı forecast için "
+            "henüz doğrulanmamış (bkz. reports/FINDINGS.md)."
+        )
+
     out = {
         "generated": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
         "canonical_etas": {
@@ -60,10 +92,7 @@ def main() -> int:
             "b_value": round(bval, 3),
             "branching_ratio": round(n, 3) if n is not None else None,
             "skill_vs_climatology_pct": 71.1,
-            "warning": (
-                "Süper-kritik (n≫1, fiziksel-olmayan). YALNIZCA tanı göstergesi; "
-                "per-olay artçı forecast için kullanılmaz. Bkz. reports/FINDINGS.md."
-            ),
+            "warning": warning,
         },
         "rj_aftershock": {
             "model": "Reasenberg-Jones (generic Türkiye varsayılanları)",
@@ -72,10 +101,7 @@ def main() -> int:
             "p": 1.08,
             "c": 0.05,
             "source": "Operasyonel artçı tahmin standardı (USGS). Generic katsayılar.",
-            "why_not_canonical": (
-                "Web artçı paneli, projenin temporal ETAS fit'i süper-kritik (n≫1) "
-                "olduğu için generic R-J kullanır — operasyonel olarak daha savunulabilir."
-            ),
+            "why_not_canonical": why_not_canonical,
         },
         "disclaimer": (
             "İstatistiksel oran tahmini — kesin deprem tahmini DEĞİLDİR. "

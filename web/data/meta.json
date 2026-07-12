@@ -1,10 +1,15 @@
 {
-  "generated": "2026-06-16",
+  "generated": "2026-06-28",
   "source": "AFAD",
   "region": "turkey",
   "cell_deg": 0.25,
   "min_mag": 3.0,
+  "mc": 2.85,
+  "area_skill_score": 0.5703,
+  "gain_top25": 2.7011,
+  "n_test_events": 15431,
   "n_cells": 1886,
   "n_big_events": 27,
-  "disclaimer": "Göreli sismik tehlike indeksi (0–100), geçmiş aktiviteye dayalı. Olasılık veya deprem tahmini DEĞİLDİR."
+  "disclaimer": "Göreli sismik tehlike indeksi (0–100), geçmiş aktiviteye dayalı. Olasılık veya deprem tahmini DEĞİLDİR.",
+  "use_restriction": "Göreli triage / portföy sıralama / accumulation control. Absolute loss'a kalibre DEĞİL — premium rating için doğrudan girdi DEĞİLDİR."
 }

@@ -68,6 +68,46 @@ python3 -m venv .venv
 ./.venv/bin/python scripts/01_fetch_catalog.py
 ```
 
+## Sonuçları yeniden üretme
+
+AFAD kanonik katalogdan statik web çıktılarına kadar ana hattı tek komutla çalıştır:
+
+```bash
+./.venv/bin/python scripts/run_pipeline.py --source afad --export-web
+```
+
+Bu komut AFAD kataloğunu indirir, `web/data/` çıktılarını üretir, zemin/saha
+katmanını ekler, ETAS/artçı parametrelerini export eder, ardından `ruff` ve
+`pytest --cov` kalite kapılarını çalıştırır. Mevcut veriyle yalnız kontrat
+kontrolü yapmak için:
+
+```bash
+./.venv/bin/python scripts/run_pipeline.py --check
+```
+
+Yükseklik API'si veya cache erişimi sorun çıkarırsa site katmanını atlayarak hızlı
+web export çalıştır:
+
+```bash
+./.venv/bin/python scripts/run_pipeline.py --skip-fetch --skip-site-layer --export-web
+```
+
+Yakın-canlı AFAD kontrolü için son pencereyi tek sefer çek:
+
+```bash
+./.venv/bin/python scripts/watch_afad.py --once --lookback-minutes 120 --min-mag 0
+```
+
+Bu komut volatil `web/data/live_events.geojson` ve `web/data/live_meta.json`
+dosyalarını yazar. Sürekli izleme için:
+
+```bash
+./.venv/bin/python scripts/watch_afad.py --interval 60 --min-mag 0
+```
+
+`live_meta.json`, `checked_at`, `latest_event_time`, `lag_minutes` ve `status`
+alanlarıyla AFAD feed tazeliğini raporlar.
+
 ## Ekip
 
 Bora Esen (ODTÜ İstatistik) · Alp Özdemir (TED Bilgisayar Müh.)
