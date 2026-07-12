@@ -540,7 +540,7 @@ def print_summary(summary: dict[str, Any], options: PipelineOptions) -> None:
     print(f"min_mag: {summary['min_mag']} (>= Mc)")
     print(f"cell_deg: {summary['cell_deg']}")
     print(
-        f"area_skill_score: {summary['area_skill_score']} (> 0 → baseline'ı yener) | "
+        f"area_skill_score: {summary['area_skill_score']} (> 0 -> baseline'i yener) | "
         f"gain_top25: {summary['gain_top25']} | n_test_events: {summary['n_test_events']}"
     )
     print(f"site_layer_required: {not options.skip_site_layer}")
@@ -564,7 +564,7 @@ def main(argv: list[str] | None = None) -> int:
             print(f"source: {surface['source']}")
             print(f"hazard_cells: {surface['hazard_cells']}")
             print(
-                f"area_skill_score: {surface['area_skill_score']} (> 0 → baseline'ı yener) | "
+                f"area_skill_score: {surface['area_skill_score']} (> 0 -> baseline'i yener) | "
                 f"gain_top25: {surface['gain_top25']} | n_test_events: {surface['n_test_events']}"
             )
         elif options.export_web or options.check:
