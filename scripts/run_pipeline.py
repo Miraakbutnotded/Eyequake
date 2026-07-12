@@ -285,6 +285,26 @@ def assert_min_mag_complete(min_mag: float, mc: float) -> None:
         )
 
 
+def assert_gain_top25(gain: float | None) -> None:
+    """Top-25% concentration gain must exceed 1.0 (area-uniform baseline).
+
+    `gain_top25 = 1.0` means the highest-risk 25% of cells captured exactly their
+    proportional share of future events — no better than area-uniform. `> 1.0` means
+    those cells captured disproportionately more. `<= 1.0` is a complementary gate to
+    `assert_beats_baseline`: even a positive overall ASS could coexist with a top-quartile
+    that adds no concentration value. `None` means skill was unmeasurable (no test events).
+    """
+    if gain is None:
+        raise PipelineError(
+            "gain_top25 hesaplanamadı (test penceresinde olay yok); yüzey gain değerini gösteremiyor."
+        )
+    if float(gain) <= 1.0:
+        raise PipelineError(
+            f"gain_top25 ({gain}) <= 1.0: en riskli %25 alan gelecek olayları "
+            "alan-uniform baseline'ı yenecek oranda toplamıyor; yüzey triage değeri yok."
+        )
+
+
 def assert_beats_baseline(area_skill_score: float | None) -> None:
     """The served surface must beat the area-uniform Poisson baseline.
 
@@ -396,6 +416,7 @@ def validate_science(root: Path = ROOT) -> dict[str, Any]:
     skill = evaluate_surface_skill(catalog_df, TURKEY, min_mag=min_mag, cell_deg=cell_deg)
     area_skill_score = skill["area_skill_score"]
     assert_beats_baseline(area_skill_score)
+    assert_gain_top25(skill["gain_top25"])
 
     stamped_ass = meta.get("area_skill_score")
     if stamped_ass is not None and abs(float(stamped_ass) - float(area_skill_score)) > 0.05:
@@ -461,6 +482,7 @@ def validate_served_surface(root: Path = ROOT, require_site_layer: bool = True) 
     # The served surface's STAMPED "beats baseline" claim must be positive. The
     # recompute-from-catalog cross-check lives in validate_science (--check).
     assert_beats_baseline(meta["area_skill_score"])
+    assert_gain_top25(meta["gain_top25"])
 
     feature = first_feature(web_data / "hazard_cells.geojson")
     props = feature.get("properties")

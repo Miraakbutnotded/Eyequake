@@ -44,9 +44,10 @@ def main() -> int:
     # Servis edilen yüzeyin ölçülmüş zaman-dışı (out-of-time) beceri provenance'ı:
     # eğitim penceresinden kurulan yüzey, GELECEK depremleri alan-uniform (Poisson)
     # baseline'a göre yoğunlaştırıyor mu? area_skill_score > 0 → baseline'ı yeniyor.
-    # SERVİS PARAMETRELERİNDE (MIN_MAG/CELL_DEG) hesaplanır; deterministik (RNG yok).
+    # SERVİS PARAMETRELERİNDE (MIN_MAG/CELL_DEG) hesaplanır; seed=0 deterministiktir.
+    # area_skill_score_ci: bootstrap %95 GA — tek-bölünme gürültüsünü niceler.
     # Tanımlayıcı bir beceri ölçüsüdür — deprem tahmini DEĞİLDİR.
-    skill = evaluate_surface_skill(df, TURKEY, min_mag=MIN_MAG, cell_deg=CELL_DEG)
+    skill = evaluate_surface_skill(df, TURKEY, min_mag=MIN_MAG, cell_deg=CELL_DEG, n_boot=1000, seed=0)
 
     (WEB_DATA_DIR / "hazard_cells.geojson").write_text(
         json.dumps(hazard_gj), encoding="utf-8"
@@ -68,6 +69,7 @@ def main() -> int:
         "min_mag": MIN_MAG,
         "mc": mc,
         "area_skill_score": skill["area_skill_score"],
+        "area_skill_score_ci": skill["area_skill_score_ci"],
         "gain_top25": skill["gain_top25"],
         "n_test_events": skill["n_test_events"],
         "n_cells": len(cells),
@@ -85,9 +87,11 @@ def main() -> int:
         json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8"
     )
 
+    ci = skill["area_skill_score_ci"]
+    ci_str = f"[{ci[0]}, {ci[1]}]" if ci else "n/a"
     print(
         f"Hücre: {len(cells)} | büyük olay: {meta['n_big_events']} | "
-        f"area_skill_score: {skill['area_skill_score']} "
+        f"area_skill_score: {skill['area_skill_score']} 95%CI={ci_str} "
         f"(gain_top25 {skill['gain_top25']}, n_test {skill['n_test_events']})"
     )
     print("En riskli 5 hücre:")

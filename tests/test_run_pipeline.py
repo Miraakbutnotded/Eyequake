@@ -483,6 +483,34 @@ def test_assert_beats_baseline_raises_on_zero_negative_and_none():
             runner.assert_beats_baseline(value)
 
 
+# --- gain_top25 > 1.0 gate ---
+
+
+def test_assert_gain_top25_passes_above_one():
+    runner = _load_runner()
+    runner.assert_gain_top25(1.5)
+    runner.assert_gain_top25(2.7)
+
+
+def test_assert_gain_top25_raises_at_or_below_one():
+    runner = _load_runner()
+    for value in (1.0, 0.8, None):
+        with pytest.raises(runner.PipelineError, match="gain_top25"):
+            runner.assert_gain_top25(value)
+
+
+def test_validate_served_surface_rejects_gain_at_or_below_one(tmp_path: Path):
+    runner = _load_runner()
+    root = _served_root(tmp_path)
+    meta_path = root / "web" / "data" / "meta.json"
+    meta = json.loads(meta_path.read_text(encoding="utf-8"))
+    meta["gain_top25"] = 0.95
+    meta_path.write_text(json.dumps(meta), encoding="utf-8")
+
+    with pytest.raises(runner.PipelineError, match="gain_top25"):
+        runner.validate_served_surface(root, require_site_layer=True)
+
+
 def test_validate_science_returns_positive_skill(tmp_path: Path):
     runner = _load_runner()
     root = _science_root(tmp_path)

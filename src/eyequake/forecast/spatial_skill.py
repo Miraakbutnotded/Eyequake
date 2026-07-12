@@ -105,6 +105,55 @@ def spatial_concentration_gain(
     return round(captured / (k / n), 4)
 
 
+def bootstrap_area_skill_ci(
+    counts_sorted_by_risk: np.ndarray,
+    *,
+    n_boot: int = 1000,
+    confidence: float = 0.95,
+    rng: np.random.Generator | None = None,
+) -> tuple[float, float]:
+    """Bootstrap confidence interval for area_skill_score by resampling test events.
+
+    Expands per-cell counts into individual event labels (cell index in risk-sorted
+    order), resamples with replacement n_boot times, and returns (lower, upper)
+    percentile bounds at the requested confidence level.
+
+    This quantifies uncertainty from the finite test-window event count; it does NOT
+    account for training-set uncertainty (the risk ordering is held fixed across
+    bootstrap samples). Descriptive — not a prediction confidence.
+
+    A CI whose lower bound is still > 0 is stronger evidence that the surface
+    beats the area-uniform baseline than a point estimate alone. The CI is wide
+    when n_test_events is small and narrows as events accumulate (CLT).
+
+    Raises ValueError for invalid counts, zero total events, or out-of-range confidence.
+    Tanımlayıcı belirsizlik ölçüsü — deprem tahmini değildir.
+    """
+    counts = _coerce_counts(counts_sorted_by_risk)
+    total = int(counts.sum())
+    if total <= 0:
+        raise ValueError("bootstrap_area_skill_ci: toplam olay sayısı pozitif olmalı")
+    if not 0.0 < confidence < 1.0:
+        raise ValueError("bootstrap_area_skill_ci: confidence (0, 1) aralığında olmalı")
+
+    _rng = rng if rng is not None else np.random.default_rng(0)
+    n = counts.size
+
+    # Expand counts to event-level cell assignments (risk-sorted cell index per event).
+    event_cells = np.repeat(np.arange(n, dtype=np.intp), counts.astype(int))
+
+    boot_scores = np.empty(n_boot)
+    for i in range(n_boot):
+        sample = _rng.choice(event_cells, size=total, replace=True)
+        boot_counts = np.bincount(sample, minlength=n).astype(float)
+        boot_scores[i] = area_skill_score(boot_counts)
+
+    alpha = 1.0 - confidence
+    lo = float(np.quantile(boot_scores, alpha / 2.0))
+    hi = float(np.quantile(boot_scores, 1.0 - alpha / 2.0))
+    return round(lo, 4), round(hi, 4)
+
+
 def evaluate_surface_skill(
     df: pd.DataFrame,
     region: Region,
@@ -112,6 +161,8 @@ def evaluate_surface_skill(
     min_mag: float = 4.0,
     cell_deg: float = 0.25,
     test_frac: float = 0.25,
+    n_boot: int = 1000,
+    seed: int = 0,
 ) -> dict:
     """Zaman-dışı (out-of-time) uzaysal beceri değerlendirmesi.
 
@@ -120,12 +171,15 @@ def evaluate_surface_skill(
     sonra TEST olayları (mag >= min_mag) eğitim hücre kutularına atanır ve her
     hücredeki gelecek-olay sayısı, kurulan hücre DataFrame'iyle AYNI satır
     sırasında sayılır. Bu sayı vektörü `area_skill_score`/`spatial_concentration_
-    gain`'e verilir.
+    gain`'e verilir; bootstrap ile `area_skill_score_ci` da hesaplanır.
 
-    Döner: {"area_skill_score", "gain_top25", "n_train_cells", "n_test_events"}.
+    Döner: {"area_skill_score", "area_skill_score_ci", "gain_top25",
+             "n_train_cells", "n_test_events"}.
     `n_test_events`, eğitim hücrelerine DÜŞEN test olaylarının sayısıdır; hiç test
-    olayı düşmezse skill ve gain None döner. Eğitim veya test penceresi boşsa
+    olayı düşmezse skill, ci ve gain None döner. Eğitim veya test penceresi boşsa
     ValueError yükseltir.
+
+    `n_boot=0` geçmek CI hesabını atlar ve `area_skill_score_ci` olarak None döner.
 
     Sıralama varsayımı: hücreler tamsayı risk_index'e (0–100) göre sıralanır,
     eşitlikler (tie) mümkündür ve eşitlik içi sıra keyfîdir; skoru hafif
@@ -169,12 +223,21 @@ def evaluate_surface_skill(
     if n_test_events <= 0:
         return {
             "area_skill_score": None,
+            "area_skill_score_ci": None,
             "gain_top25": None,
             "n_train_cells": n_train_cells,
             "n_test_events": 0,
         }
+
+    ass = area_skill_score(counts)
+    ci: list[float] | None = None
+    if n_boot > 0:
+        lo, hi = bootstrap_area_skill_ci(counts, n_boot=n_boot, rng=np.random.default_rng(seed))
+        ci = [lo, hi]
+
     return {
-        "area_skill_score": area_skill_score(counts),
+        "area_skill_score": ass,
+        "area_skill_score_ci": ci,
         "gain_top25": spatial_concentration_gain(counts, area_fraction=0.25),
         "n_train_cells": n_train_cells,
         "n_test_events": n_test_events,
