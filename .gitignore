@@ -18,3 +18,6 @@ web/data/live_meta.json
 .DS_Store
 .vscode/
 .idea/
+
+# Claude Code local settings
+.claude/
