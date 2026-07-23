@@ -17,24 +17,21 @@ Kullanım: ./.venv/bin/python scripts/11_export_etas_params.py
 from __future__ import annotations
 
 import json
-import sys
 from datetime import datetime, timezone
-from pathlib import Path
 
 import pandas as pd
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
-
-from eyequake.analysis.seismology import b_value_aki, magnitude_of_completeness  # noqa: E402
-from eyequake.config import PROCESSED_DIR, TURKEY, WEB_DATA_DIR  # noqa: E402
-from eyequake.forecast.etas import branching_ratio, fit_etas  # noqa: E402
+from eyequake.analysis.seismology import b_value_aki, magnitude_of_completeness
+from eyequake.config import WEB_DATA_DIR
+from eyequake.data.clean import load_catalog
+from eyequake.forecast.etas import branching_ratio, fit_etas
 
 MIN_MAG = 4.0
 TRAIN_FRAC = 0.75
 
 
 def main() -> int:
-    df = pd.read_csv(PROCESSED_DIR / f"{TURKEY.name}_catalog.csv", parse_dates=["time"])
+    df = load_catalog()
     sub = df[df["mag"] >= MIN_MAG].copy()
     sub["time"] = pd.to_datetime(sub["time"], utc=True, format="ISO8601")
     sub = sub.sort_values("time").reset_index(drop=True)

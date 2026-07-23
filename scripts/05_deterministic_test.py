@@ -12,24 +12,18 @@ Kullanım:
 
 from __future__ import annotations
 
-import sys
-from pathlib import Path
-
 import numpy as np
 import pandas as pd
-
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
-
-from sklearn.ensemble import (  # noqa: E402
+from sklearn.ensemble import (
     HistGradientBoostingClassifier,
     HistGradientBoostingRegressor,
 )
-from sklearn.metrics import mean_absolute_error, r2_score, roc_auc_score  # noqa: E402
+from sklearn.metrics import mean_absolute_error, r2_score, roc_auc_score
 
-from eyequake.config import PROCESSED_DIR, TURKEY  # noqa: E402
-from eyequake.forecast.deterministic import build_event_features  # noqa: E402
-from eyequake.forecast.evaluate import temporal_split  # noqa: E402
-from eyequake.forecast.windows import build_windowed_series, make_supervised  # noqa: E402
+from eyequake.data.clean import load_catalog
+from eyequake.forecast.deterministic import build_event_features
+from eyequake.forecast.evaluate import temporal_split
+from eyequake.forecast.windows import build_windowed_series, make_supervised
 
 MIN_MAG = 4.0
 STRONG = 5.0
@@ -95,7 +89,7 @@ def binary_task(df: pd.DataFrame) -> None:
 
 
 def main() -> int:
-    df = pd.read_csv(PROCESSED_DIR / f"{TURKEY.name}_catalog.csv", parse_dates=["time"])
+    df = load_catalog()
     track_c(df)
     binary_task(df)
     return 0

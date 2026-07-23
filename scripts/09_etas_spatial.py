@@ -12,18 +12,14 @@ Kullanım:
 
 from __future__ import annotations
 
-import sys
-from pathlib import Path
-
-import numpy as np
 import pandas as pd
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
-
-from eyequake.analysis.seismology import b_value_aki, magnitude_of_completeness  # noqa: E402
-from eyequake.config import FAULT_ZONES, PROCESSED_DIR, TURKEY  # noqa: E402
-from eyequake.forecast.etas import branching_ratio, expected_count, fit_etas  # noqa: E402
-from eyequake.forecast.evaluate import score, skill_score  # noqa: E402
+from eyequake.analysis.seismology import b_value_aki, magnitude_of_completeness
+from eyequake.config import FAULT_ZONES
+from eyequake.data.clean import load_catalog
+from eyequake.forecast.backtest import InsufficientData, backtest_etas, to_days
+from eyequake.forecast.etas import branching_ratio
+from eyequake.forecast.evaluate import score, skill_score
 
 MIN_MAG = 4.0
 WINDOW_DAYS = 30.0
@@ -33,43 +29,24 @@ MIN_EVENTS = 150  # bölge fiti için minimum olay sayısı
 
 def fit_and_eval(label: str, sub: pd.DataFrame) -> dict | None:
     sub = sub.sort_values("time").reset_index(drop=True)
-    t0 = sub["time"].iloc[0]
-    t = ((sub["time"] - t0).dt.total_seconds() / 86_400.0).to_numpy()
+    t = to_days(sub["time"])
     m = sub["mag"].to_numpy()
-    T_end = float(t[-1])
-    k = int(len(t) * TRAIN_FRAC)
-    if k < 30 or len(t) - k < 8:
-        print(f"\n{label}: yetersiz olay ({len(t)}), atlanıyor.")
-        return None
-    T_split = float(t[k])
 
-    params = fit_etas(t[:k], m[:k], m0=MIN_MAG, T0=0.0, T1=T_split)
+    try:
+        bt = backtest_etas(t, m, m0=MIN_MAG, window_days=WINDOW_DAYS, train_frac=TRAIN_FRAC)
+    except InsufficientData as e:
+        print(f"\n{label}: {e}, atlanıyor.")
+        return None
+
+    params = bt.params
     try:
         bval = b_value_aki(m, magnitude_of_completeness(m)).b
     except ValueError:
         bval = 1.0
     n_branch = branching_ratio(params, bval)
 
-    win_starts = np.arange(T_split, T_end - WINDOW_DAYS, WINDOW_DAYS)
-    if len(win_starts) == 0:
-        print(f"\n{label}: test penceresi yok, atlanıyor.")
-        return None
-
-    actual, etas_pred = [], []
-    for ws in win_starts:
-        we = ws + WINDOW_DAYS
-        actual.append(int(np.sum((t >= ws) & (t < we))))
-        hist = t < ws
-        etas_pred.append(expected_count(params, t[hist], m[hist], ws, we))
-    actual = np.array(actual, dtype=float)
-    etas_pred = np.array(etas_pred, dtype=float)
-
-    train_starts = np.arange(0.0, T_split - WINDOW_DAYS, WINDOW_DAYS)
-    train_counts = [int(np.sum((t >= s) & (t < s + WINDOW_DAYS))) for s in train_starts]
-    clim = np.full(len(actual), float(np.mean(train_counts)) if train_counts else 0.0)
-
-    s_etas = score(actual, etas_pred)
-    s_clim = score(actual, clim)
+    s_etas = score(bt.actual, bt.etas_pred)
+    s_clim = score(bt.actual, bt.climatology)
     sk = (
         skill_score(s_etas["poisson_deviance"], s_clim["poisson_deviance"])
         if s_clim["poisson_deviance"]
@@ -88,7 +65,7 @@ def fit_and_eval(label: str, sub: pd.DataFrame) -> dict | None:
 
 
 def main() -> int:
-    df = pd.read_csv(PROCESSED_DIR / f"{TURKEY.name}_catalog.csv", parse_dates=["time"])
+    df = load_catalog()
     df["time"] = pd.to_datetime(df["time"], utc=True, format="ISO8601")
     df = df[df["mag"] >= MIN_MAG].copy()
 

@@ -7,16 +7,11 @@ Kullanım:
 from __future__ import annotations
 
 import json
-import sys
 from datetime import datetime, timezone
-from pathlib import Path
 
-import pandas as pd
-
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
-
-from eyequake.config import PROCESSED_DIR, TURKEY, WEB_DATA_DIR  # noqa: E402
-from eyequake.web.export import (  # noqa: E402
+from eyequake.config import PROCESSED_DIR, TURKEY, WEB_DATA_DIR
+from eyequake.data.clean import load_catalog
+from eyequake.web.export import (
     build_cell_index,
     cells_to_geojson,
     events_to_geojson,
@@ -29,7 +24,7 @@ MIN_MAG = 3.0
 
 def main() -> int:
     WEB_DATA_DIR.mkdir(parents=True, exist_ok=True)
-    df = pd.read_csv(PROCESSED_DIR / f"{TURKEY.name}_catalog.csv", parse_dates=["time"])
+    df = load_catalog()
 
     cells = build_cell_index(df, TURKEY, cell_deg=CELL_DEG, min_mag=MIN_MAG)
     hazard_gj = cells_to_geojson(cells, cell_deg=CELL_DEG)

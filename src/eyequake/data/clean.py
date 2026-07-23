@@ -1,11 +1,36 @@
-"""Ham FDSN kataloğunu analiz-hazır forma normalize etme."""
+"""Ham FDSN kataloğunu analiz-hazır forma normalize etme ve diskten okuma."""
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import pandas as pd
+
+from ..config import PROCESSED_DIR, TURKEY
 
 # Analizde kullanılan kolonlar.
 _KEEP = ["id", "time", "latitude", "longitude", "depth", "mag", "magType", "place"]
+
+
+def catalog_path() -> Path:
+    """Kanonik temizlenmiş katalog dosyasının yolu."""
+    return PROCESSED_DIR / f"{TURKEY.name}_catalog.csv"
+
+
+def load_catalog(path: Path | None = None) -> pd.DataFrame:
+    """Kanonik katalogu okur. Dosya yoksa hangi fetcher'ın koşacağını söyler.
+
+    Kataloğu 07_fetch_afad.py (kanonik) veya 01_fetch_catalog.py (USGS yedeği) yazar;
+    ikisi de aynı şemayı üretir, bu yüzden downstream kaynağı bilmek zorunda değildir.
+    """
+    path = path or catalog_path()
+    if not path.exists():
+        raise FileNotFoundError(
+            f"Katalog yok: {path}\n"
+            "Önce bir fetcher çalıştır: scripts/07_fetch_afad.py (kanonik) "
+            "veya scripts/01_fetch_catalog.py (USGS yedeği)."
+        )
+    return pd.read_csv(path, parse_dates=["time"])
 
 
 def clean_catalog(raw: pd.DataFrame) -> pd.DataFrame:

@@ -10,9 +10,6 @@ Kullanım:
 
 from __future__ import annotations
 
-import sys
-from pathlib import Path
-
 import matplotlib
 
 matplotlib.use("Agg")  # başlıksız (non-interactive) backend
@@ -20,24 +17,15 @@ import matplotlib.pyplot as plt  # noqa: E402
 import numpy as np  # noqa: E402
 import pandas as pd  # noqa: E402
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
-
 from eyequake.analysis.seismology import (  # noqa: E402
     b_value_aki,
     frequency_magnitude_distribution,
     magnitude_of_completeness,
 )
-from eyequake.config import FIGURES_DIR, PROCESSED_DIR, TURKEY  # noqa: E402
+from eyequake.config import FIGURES_DIR  # noqa: E402
+from eyequake.data.clean import load_catalog  # noqa: E402
 
 THRESHOLDS = [2.5, 3.5, 4.0, 4.5]
-
-
-def load_catalog() -> pd.DataFrame:
-    path = PROCESSED_DIR / f"{TURKEY.name}_catalog.csv"
-    if not path.exists():
-        raise FileNotFoundError(f"Önce 01_fetch_catalog.py çalıştır: {path} yok.")
-    df = pd.read_csv(path, parse_dates=["time"])
-    return df
 
 
 def plot_yearly_counts(df: pd.DataFrame) -> None:

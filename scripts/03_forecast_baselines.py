@@ -10,24 +10,17 @@ Kullanım:
 
 from __future__ import annotations
 
-import sys
-from pathlib import Path
-
 import numpy as np
-import pandas as pd
+from sklearn.ensemble import HistGradientBoostingRegressor
+from sklearn.linear_model import PoissonRegressor
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
-
-from sklearn.ensemble import HistGradientBoostingRegressor  # noqa: E402
-from sklearn.linear_model import PoissonRegressor  # noqa: E402
-
-from eyequake.config import PROCESSED_DIR, TURKEY  # noqa: E402
-from eyequake.forecast.baselines import (  # noqa: E402
+from eyequake.data.clean import load_catalog
+from eyequake.forecast.baselines import (
     climatology_forecast,
     persistence_forecast,
 )
-from eyequake.forecast.evaluate import score, skill_score, temporal_split  # noqa: E402
-from eyequake.forecast.windows import build_windowed_series, make_supervised  # noqa: E402
+from eyequake.forecast.evaluate import score, skill_score, temporal_split
+from eyequake.forecast.windows import build_windowed_series, make_supervised
 
 FREQ_DAYS = 30
 MIN_MAG = 4.0
@@ -36,8 +29,7 @@ TEST_FRAC = 0.25
 
 
 def main() -> int:
-    path = PROCESSED_DIR / f"{TURKEY.name}_catalog.csv"
-    df = pd.read_csv(path, parse_dates=["time"])
+    df = load_catalog()
 
     series = build_windowed_series(df, freq_days=FREQ_DAYS, min_mag=MIN_MAG)
     sup = make_supervised(series, n_lags=N_LAGS, target="n_events")

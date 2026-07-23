@@ -10,12 +10,8 @@ Kullanım:
 from __future__ import annotations
 
 import json
-import sys
-from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
-
-from eyequake.analysis.site import (  # noqa: E402
+from eyequake.analysis.site import (
     amplification,
     compute_slope,
     liquefaction,
@@ -23,8 +19,8 @@ from eyequake.analysis.site import (  # noqa: E402
     site_adjusted_risk,
     slope_to_vs30,
 )
-from eyequake.config import RAW_DIR, WEB_DATA_DIR  # noqa: E402
-from eyequake.data.elevation import fetch_elevations  # noqa: E402
+from eyequake.config import RAW_DIR, WEB_DATA_DIR
+from eyequake.data.elevation import fetch_elevations
 
 SLOPE_DELTA = 0.02  # ° — yerel eğim için komşu mesafesi (~2 km)
 
