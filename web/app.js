@@ -355,12 +355,59 @@ function updateLegend() {
     '<i style="background:#00e5ff;border-radius:50%"></i>M≥6 tarihsel';
 }
 
+// Her katmanın ne olduğunu açıklayan içerik — sekmeye tıklanınca panelde gösterilir.
+const METRIC_INFO = {
+  risk: {
+    badge: "Risk", accent: "#ff3b00", title: "Göreli risk indeksi",
+    body:
+      "Türkiye'de 1990'dan bugüne kaydedilen deprem aktivitesinin ülke genelindeki " +
+      "yüzdelik sıralaması (0–100). Bir bölgede tarihsel olarak ne kadar sık ve büyük " +
+      "deprem olduğunu gösterir — sismisitenin nerede yoğunlaştığını. Bu tanımlayıcı bir " +
+      "göstergedir; gelecekteki bir depremin zamanını, yerini veya büyüklüğünü tahmin etmez.",
+  },
+  amp: {
+    badge: "Zemin büyütme", accent: "#756bb1", title: "Zemin büyütmesi nedir?",
+    body:
+      "Deprem dalgaları yumuşak, gevşek zeminden geçerken güçlenir: aynı deprem yumuşak " +
+      "zeminde, sağlam kayaya göre çok daha şiddetli sarsıntı üretir. Bu katman, üst 30 m'nin " +
+      "kayma dalgası hızından (Vs30) türetilen büyütme faktörünü gösterir — düşük Vs30 (yumuşak " +
+      "zemin) → yüksek büyütme. 1985 Mexico City ve 1999 Adapazarı'nda hasarın belirleyicisi " +
+      "zemin büyütmesiydi. Vs30 burada eğimden türetilir (~bölgesel çözünürlük), saha ölçümü değil.",
+  },
+  liq: {
+    badge: "Sıvılaşma", accent: "#ff8c00", title: "Sıvılaşma nedir?",
+    body:
+      "Suya doygun, gevşek kum/silt zemin güçlü sarsıntı sırasında geçici olarak sıvı gibi " +
+      "davranır ve taşıma gücünü kaybeder. Sonuç: binalar yan yatar, batar veya döner; zeminden " +
+      "su ve kum fışkırır. 1999 Adapazarı ve 2023 Kahramanmaraş (İskenderun kıyısı) depremlerinde " +
+      "görüldü. Bu harita bir tarama (screening) göstergesidir — sondaj, yeraltı su seviyesi veya " +
+      "laboratuvar verisi içermez; jeoteknik değerlendirmenin yerini tutmaz.",
+  },
+  site_risk: {
+    badge: "Saha-risk", accent: "#ffd500", title: "Saha-düzeltilmiş risk",
+    body:
+      "Sismik tehlikeyi (nerede deprem olur) zemin büyütmesiyle (zemin sarsıntıya nasıl tepki " +
+      "verir) birleştirir. İki bölge aynı deprem tehlikesini taşısa bile, yumuşak zeminli olan " +
+      "gerçekte daha yüksek risk taşır. EyeQuake'in çekirdek çıktısı budur — salt sismisiteden " +
+      "farkı, zemin koşulunu hesaba katmasıdır.",
+  },
+};
+
+function updateMetricInfo() {
+  const info = METRIC_INFO[currentMetric] || METRIC_INFO.risk;
+  document.getElementById("metricInfo").style.setProperty("--mi-accent", info.accent);
+  document.getElementById("miBadge").textContent = info.badge;
+  document.getElementById("miTitle").textContent = info.title;
+  document.getElementById("miBody").textContent  = info.body;
+}
+
 function setMetric(m) {
   currentMetric = m;
   if (hazardLayer) hazardLayer.setStyle(cellStyle);
   document.querySelectorAll(".metric-btn")
     .forEach((b) => b.classList.toggle("active", b.dataset.metric === m));
   updateLegend();
+  updateMetricInfo();
 }
 
 function addLegend() {
@@ -386,4 +433,5 @@ function addLegend() {
   recent.addTo(map);
 }
 
+updateMetricInfo(); // varsayılan katman (risk) açıklamasını göster
 load();

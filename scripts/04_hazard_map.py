@@ -10,27 +10,22 @@ Kullanım:
 
 from __future__ import annotations
 
-import sys
-from pathlib import Path
-
 import matplotlib
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 import numpy as np  # noqa: E402
-import pandas as pd  # noqa: E402
-
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from eyequake.analysis.hazard import spatial_grid_rates  # noqa: E402
 from eyequake.config import FIGURES_DIR, PROCESSED_DIR, TURKEY  # noqa: E402
+from eyequake.data.clean import load_catalog  # noqa: E402
 
 CELL_DEG = 0.25
 MIN_MAG = 4.0
 
 
 def main() -> int:
-    df = pd.read_csv(PROCESSED_DIR / f"{TURKEY.name}_catalog.csv", parse_dates=["time"])
+    df = load_catalog()
     grid = spatial_grid_rates(df, TURKEY, cell_deg=CELL_DEG, min_mag=MIN_MAG)
 
     # log10 oran (sıfır hücreleri maskele).
