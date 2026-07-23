@@ -52,6 +52,26 @@ html, body { margin: 0; height: 100%; background: var(--eq-black); color: var(--
 .muted { color: var(--eq-muted) !important; }
 .hidden { display: none; }
 
+/* --- Katman açıklama kartı (metrik seçimine göre güncellenir) --- */
+.metric-info {
+  background: #101010; border: 1px solid #2a2a2a;
+  border-left: 3px solid var(--mi-accent, var(--eq-yellow));
+  border-radius: 10px; padding: 13px 15px; margin-bottom: 20px;
+}
+.metric-info-head { display: flex; align-items: center; gap: 9px; margin-bottom: 7px; }
+.metric-info-badge {
+  font-size: 10px; text-transform: uppercase; letter-spacing: 0.6px; font-weight: 700;
+  color: #000; background: var(--mi-accent, var(--eq-yellow));
+  border-radius: 4px; padding: 2px 7px; white-space: nowrap;
+}
+.metric-info-title { font-size: 15px; font-weight: 700; color: var(--eq-text); }
+.metric-info-body { margin: 0; font-size: 12.5px; line-height: 1.55; color: #cfcfcf; }
+.metric-info-more {
+  display: inline-block; margin-top: 9px; font-size: 12px;
+  color: var(--eq-yellow); text-decoration: none;
+}
+.metric-info-more:hover { text-decoration: underline; }
+
 .score-block { text-align: center; margin-bottom: 22px; }
 .score-label { font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: var(--eq-muted); }
 .score-value { font-size: 64px; font-weight: 800; line-height: 1.05; margin: 4px 0; }

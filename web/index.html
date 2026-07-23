@@ -33,6 +33,15 @@
     <div id="map" role="application" aria-label="Türkiye sismik risk haritası"></div>
 
     <aside class="panel" id="panel">
+      <div class="metric-info" id="metricInfo">
+        <div class="metric-info-head">
+          <span class="metric-info-badge" id="miBadge">Katman</span>
+          <span class="metric-info-title" id="miTitle">—</span>
+        </div>
+        <p class="metric-info-body" id="miBody">—</p>
+        <a class="metric-info-more" href="./methodology.html" target="_blank">Nasıl hesaplanır + dürüst sınırlar →</a>
+      </div>
+
       <div class="panel-empty" id="panelEmpty">
         <h2>Bir bölgeye tıkla</h2>
         <p>Haritadaki renkli hücreler, 1990–günümüz arası deprem aktivitesine göre
@@ -99,6 +108,6 @@
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
           integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-  <script src="./app.js?v=4"></script>
+  <script src="./app.js?v=5"></script>
 </body>
 </html>
