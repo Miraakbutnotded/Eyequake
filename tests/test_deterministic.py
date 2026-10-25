@@ -41,3 +41,10 @@ def test_deterministic_repeatable():
     f1 = build_event_features(df, k=8)
     f2 = build_event_features(df, k=8)
     assert np.allclose(f1.X, f2.X) and np.allclose(f1.y, f2.y)
+
+
+def test_short_history_keeps_2d_feature_shape():
+    """k'dan az olayda X boş ama (0, n_features) kalmalı — 1-B (0,) değil."""
+    feats = build_event_features(_catalog(5), min_mag=4.0, k=10)
+    assert feats.X.shape == (0, len(feats.feature_names))
+    assert feats.y.shape == (0,)

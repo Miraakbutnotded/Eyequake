@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import numpy as np
 import pandas as pd
+import pytest
 
 from eyequake.analysis.hazard import spatial_grid_rates
 from eyequake.config import Region
@@ -46,3 +47,32 @@ def test_cell_table_sorted_descending_by_rate():
 def test_catalog_years_spans_full_dataframe():
     g = spatial_grid_rates(_catalog(), REGION, cell_deg=0.5, min_mag=4.0)
     assert 9.9 < g.catalog_years < 10.1  # 2000 → 2010
+
+
+def test_grid_bins_cover_region_exactly_without_float_drift():
+    """d=0.1'de np.arange kayması enlemde fazladan (bölge-dışı) bir satır üretiyordu."""
+    region = Region("tr", min_lat=35.5, max_lat=42.5, min_lon=25.5, max_lon=45.0)
+    grid = spatial_grid_rates(_catalog(), region, cell_deg=0.1, min_mag=4.0)
+    assert grid.counts.shape == (70, 195)
+    assert grid.lat_edges[-1] == pytest.approx(42.5)
+    assert grid.lon_edges[-1] == pytest.approx(45.0)
+
+
+def test_non_divisible_cell_still_covers_the_max_edge():
+    grid = spatial_grid_rates(_catalog(), REGION, cell_deg=0.3, min_mag=4.0)
+    assert grid.lat_edges[-1] >= REGION.max_lat
+    assert grid.lat_edges[-1] - REGION.max_lat < 0.3
+
+
+@pytest.mark.parametrize("n_rows", [0, 1])
+def test_zero_span_catalog_raises_instead_of_infinite_rate(n_rows):
+    df = _catalog().iloc[:n_rows]
+    with pytest.raises(ValueError, match="süresi"):
+        spatial_grid_rates(df, REGION, cell_deg=0.5, min_mag=4.0)
+
+
+def test_no_events_above_min_mag_gives_empty_but_typed_cell_table():
+    grid = spatial_grid_rates(_catalog(), REGION, cell_deg=0.5, min_mag=9.0)
+    assert grid.cell_table.empty
+    assert list(grid.cell_table.columns) == ["lat", "lon", "n_events", "annual_rate"]
+    assert grid.counts.sum() == 0
