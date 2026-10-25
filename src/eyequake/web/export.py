@@ -7,6 +7,8 @@ göstergedir. Olasılık dili kullanmaktan kasıtla kaçınılır (dürüst konu
 
 from __future__ import annotations
 
+import json
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -14,6 +16,24 @@ import pandas as pd
 from ..config import Region
 
 _SECONDS_PER_YEAR = 365.25 * 86_400.0
+
+UNKNOWN_SOURCE = "BİLİNMİYOR"
+
+
+def read_catalog_source(summary_path: Path) -> str:
+    """İşlenmiş katalog özetindeki veri kaynağını (AFAD/USGS) okur.
+
+    Kaynak bilinmiyorsa (özet yok, bozuk ya da `source` alanı yok) UNKNOWN_SOURCE
+    döner — ASLA varsayılan "AFAD" değil. Varsayılan "AFAD", USGS kataloğundan
+    üretilen bir yüzeyi AFAD diye etiketleyip provenance kontratını sessizce
+    geçirirdi; bilinmeyen kaynak kontratta fail-closed reddedilir.
+    """
+    try:
+        summary = json.loads(Path(summary_path).read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return UNKNOWN_SOURCE
+    source = summary.get("source") if isinstance(summary, dict) else None
+    return str(source) if source else UNKNOWN_SOURCE
 
 
 def _to_utc(series: pd.Series) -> pd.Series:
@@ -41,15 +61,20 @@ def build_cell_index(
     """Hücre başına oran, maks büyüklük, güncel aktivite ve göreli risk indeksi."""
     times = _to_utc(df["time"])
     catalog_years = (times.max() - times.min()).total_seconds() / _SECONDS_PER_YEAR
+    if not catalog_years > 0:  # boş katalog (NaN) veya tek an → annual_rate = inf
+        raise ValueError("Katalog süresi sıfır/tanımsız; yıllık oran hesaplanamaz.")
     recent_cut = times.max() - pd.Timedelta(days=recent_years * 365.25)
 
     sub = df[df["mag"] >= min_mag].copy()
     sub["time"] = _to_utc(sub["time"])
     sub["lat_bin"], sub["lon_bin"] = cell_bins(sub["latitude"], sub["longitude"], region, cell_deg)
+    # Eksik derinlik NaN kalır: groupby-mean NaN'ı atlar, `<= 15` NaN için False verir.
+    # (Eskiden 999 km sentinel'i ortalamaya karışıp tek eksik kaydı olan sığ bir
+    # hücreyi yüzlerce km "derin" gösteriyordu.)
     if "depth" in sub.columns:
-        sub["depth"] = pd.to_numeric(sub["depth"], errors="coerce").fillna(999.0)
+        sub["depth"] = pd.to_numeric(sub["depth"], errors="coerce")
     else:
-        sub["depth"] = pd.Series(999.0, index=sub.index)
+        sub["depth"] = pd.Series(np.nan, index=sub.index, dtype=float)
     sub["energy_proxy"] = np.power(10.0, 1.5 * sub["mag"])
     sub["is_shallow"] = sub["depth"] <= 15.0
 
@@ -106,6 +131,15 @@ def build_cell_index(
     return cells.sort_values("risk_index", ascending=False).reset_index(drop=True)
 
 
+def _finite_or_none(value) -> float | None:
+    """NaN/eksik → None (JSON null). Çıplak NaN geçersiz JSON'dur; tarayıcıda
+    JSON.parse tüm katmanı düşürür."""
+    if value is None:
+        return None
+    val = float(value)
+    return val if np.isfinite(val) else None
+
+
 def cells_to_geojson(cells: pd.DataFrame, cell_deg: float = 0.25) -> dict:
     """Hücreleri kare poligon FeatureCollection'a çevirir."""
     features = []
@@ -127,7 +161,7 @@ def cells_to_geojson(cells: pd.DataFrame, cell_deg: float = 0.25) -> dict:
                 "recent_rate": float(r.get("recent_rate", 0.0)),
                 "recency_days": float(r.get("recency_days", 0.0)),
                 "energy_index": float(r.get("energy_index", 0.0)),
-                "mean_depth": float(r.get("mean_depth", 0.0)),
+                "mean_depth": _finite_or_none(r.get("mean_depth")),
                 "shallow_fraction": float(r.get("shallow_fraction", 0.0)),
                 "risk_rate_component": round(float(r.get("risk_rate_component", 0.0)), 3),
                 "risk_magnitude_component": round(float(r.get("risk_magnitude_component", 0.0)), 3),

@@ -22,6 +22,7 @@ from eyequake.web.export import (  # noqa: E402
     build_cell_index,
     cells_to_geojson,
     events_to_geojson,
+    read_catalog_source,
 )
 
 # AFAD kataloğu M≥3.0'da tam → daha yoğun, daha bilgilendirici risk haritası.
@@ -50,16 +51,14 @@ def main() -> int:
     skill = evaluate_surface_skill(df, TURKEY, min_mag=MIN_MAG, cell_deg=CELL_DEG, n_boot=1000, seed=0)
 
     (WEB_DATA_DIR / "hazard_cells.geojson").write_text(
-        json.dumps(hazard_gj), encoding="utf-8"
+        json.dumps(hazard_gj, allow_nan=False), encoding="utf-8"
     )
     (WEB_DATA_DIR / "big_events.geojson").write_text(
-        json.dumps(events_gj), encoding="utf-8"
+        json.dumps(events_gj, allow_nan=False), encoding="utf-8"
     )
     # Kaynak adını işlenmiş özetten oku (USGS ya da AFAD — son çekime bağlı).
-    summary_path = PROCESSED_DIR / f"{TURKEY.name}_summary.json"
-    source = "AFAD"
-    if summary_path.exists():
-        source = json.loads(summary_path.read_text()).get("source", "AFAD")
+    # Bilinmiyorsa "AFAD" varsayılmaz; kontrat bilinmeyen kaynağı reddeder.
+    source = read_catalog_source(PROCESSED_DIR / f"{TURKEY.name}_summary.json")
 
     meta = {
         "generated": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
@@ -84,7 +83,7 @@ def main() -> int:
         ),
     }
     (WEB_DATA_DIR / "meta.json").write_text(
-        json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8"
+        json.dumps(meta, ensure_ascii=False, indent=2, allow_nan=False), encoding="utf-8"
     )
 
     ci = skill["area_skill_score_ci"]

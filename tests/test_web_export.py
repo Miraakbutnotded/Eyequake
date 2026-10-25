@@ -2,10 +2,19 @@
 
 from __future__ import annotations
 
+import json
+from pathlib import Path
+
 import pandas as pd
+import pytest
 
 from eyequake.config import Region
-from eyequake.web.export import build_cell_index, cells_to_geojson
+from eyequake.web.export import (
+    UNKNOWN_SOURCE,
+    build_cell_index,
+    cells_to_geojson,
+    read_catalog_source,
+)
 
 REGION = Region("test", min_lat=38.0, max_lat=42.0, min_lon=30.0, max_lon=36.0)
 
@@ -85,3 +94,51 @@ def test_build_cell_index_handles_missing_depth_column():
 
     assert "mean_depth" in cells.columns
     assert cells["shallow_fraction"].eq(0.0).all()
+
+
+@pytest.mark.parametrize("source", ["AFAD", "USGS"])
+def test_read_catalog_source_reports_the_recorded_source(tmp_path: Path, source):
+    path = tmp_path / "summary.json"
+    path.write_text(json.dumps({"n_events": 3, "source": source}), encoding="utf-8")
+    assert read_catalog_source(path) == source
+
+
+@pytest.mark.parametrize(
+    "content",
+    [None, "{bozuk json", json.dumps({"n_events": 3}), json.dumps({"source": ""}), "[]"],
+)
+def test_read_catalog_source_never_defaults_to_afad(tmp_path: Path, content):
+    """Kaynak bilinmiyorsa 'AFAD' DEĞİL bilinmeyen döner (provenance fail-closed).
+
+    Eski davranış: özet `source` taşımıyorsa "AFAD" varsayılıyordu — USGS kataloğu
+    (01_fetch_catalog.py `source` yazmıyordu) AFAD diye servis edilebiliyordu.
+    """
+    path = tmp_path / "summary.json"
+    if content is not None:
+        path.write_text(content, encoding="utf-8")
+    assert read_catalog_source(path) == UNKNOWN_SOURCE
+    assert "AFAD" not in read_catalog_source(path)
+
+
+def test_missing_depth_does_not_inflate_mean_depth():
+    """Eksik derinlik 999 km sentinel'i olarak ortalamaya KARIŞMAMALI."""
+    catalog = _multi_signal_catalog()
+    catalog.loc[catalog.index[0], "depth"] = None
+    cells = build_cell_index(catalog, REGION, cell_deg=1.0, min_mag=3.0)
+    assert cells["mean_depth"].max() < 100.0
+
+
+def test_cell_with_no_known_depth_serialises_as_null_not_nan():
+    catalog = _multi_signal_catalog()
+    catalog["depth"] = None
+    cells = build_cell_index(catalog, REGION, cell_deg=1.0, min_mag=3.0)
+    gj = cells_to_geojson(cells, cell_deg=1.0)
+    text = json.dumps(gj, allow_nan=False)  # NaN olsaydı ValueError
+    assert all(f["properties"]["mean_depth"] is None for f in json.loads(text)["features"])
+    assert all(f["properties"]["shallow_fraction"] == 0.0 for f in gj["features"])
+
+
+def test_zero_span_catalog_raises_instead_of_infinite_rate():
+    catalog = _multi_signal_catalog().iloc[:1]
+    with pytest.raises(ValueError, match="süresi"):
+        build_cell_index(catalog, REGION, cell_deg=1.0, min_mag=3.0)

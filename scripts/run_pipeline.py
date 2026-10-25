@@ -234,16 +234,7 @@ def validate_outputs(root: Path = ROOT, require_site_layer: bool = True) -> dict
     if not isinstance(big_event.get("properties"), dict):
         raise PipelineError("big_events feature missing properties")
 
-    etas = load_json(etas_path)
-    require_keys("etas_params", etas, {"canonical_etas", "rj_aftershock", "disclaimer"})
-    canonical = etas["canonical_etas"]
-    if not isinstance(canonical, dict):
-        raise PipelineError("canonical_etas must be an object")
-    require_keys("canonical_etas", canonical, {"source", "warning"})
-    if "AFAD" not in str(canonical["source"]):
-        raise PipelineError("canonical_etas source must reference AFAD")
-    if "tahmini" not in str(etas["disclaimer"]).lower():
-        raise PipelineError("etas_params disclaimer must state prediction limits")
+    validate_etas_params(load_json(etas_path))
 
     return {
         "source": summary["source"],
@@ -252,6 +243,28 @@ def validate_outputs(root: Path = ROOT, require_site_layer: bool = True) -> dict
         "big_events": len(load_json(big_events_path)["features"]),
         "date_range": f"{summary['date_min']} → {summary['date_max']}",
     }
+
+
+def validate_etas_params(etas: dict[str, Any]) -> None:
+    """etas_params.json dürüstlük kontratı (provenance + disclaimer + ölçülmüş beceri).
+
+    `skill_vs_climatology_pct` servis edilen bir beceri iddiasıdır; sonlu bir sayı
+    olmalı (NaN/Inf/eksik = ölçülmemiş iddia). Değer, 11_export_etas_params.py'de
+    08_etas.py ile aynı `evaluate_etas_windows` hesabından gelir.
+    """
+    require_keys("etas_params", etas, {"canonical_etas", "rj_aftershock", "disclaimer"})
+    canonical = etas["canonical_etas"]
+    if not isinstance(canonical, dict):
+        raise PipelineError("canonical_etas must be an object")
+    require_keys("canonical_etas", canonical, {"source", "warning", "skill_vs_climatology_pct"})
+    if "AFAD" not in str(canonical["source"]):
+        raise PipelineError("canonical_etas source must reference AFAD")
+    skill = canonical["skill_vs_climatology_pct"]
+    if isinstance(skill, bool) or not isinstance(skill, (int, float)):
+        raise PipelineError(f"canonical_etas skill_vs_climatology_pct sayı değil: {skill!r}")
+    assert_finite_skill("canonical_etas skill_vs_climatology_pct", skill)
+    if "tahmini" not in str(etas["disclaimer"]).lower():
+        raise PipelineError("etas_params disclaimer must state prediction limits")
 
 
 def read_catalog_magnitudes(path: Path) -> np.ndarray:
@@ -521,15 +534,7 @@ def validate_served_surface(root: Path = ROOT, require_site_layer: bool = True) 
         required_hazard |= {"site_risk", "site_class", "amp", "liq_class"}
     require_keys("hazard feature", props, required_hazard)
 
-    etas = load_json(web_data / "etas_params.json")
-    require_keys("etas_params", etas, {"canonical_etas", "rj_aftershock", "disclaimer"})
-    canonical = etas["canonical_etas"]
-    if not isinstance(canonical, dict):
-        raise PipelineError("canonical_etas must be an object")
-    if "AFAD" not in str(canonical.get("source", "")):
-        raise PipelineError("canonical_etas source must reference AFAD")
-    if "tahmini" not in str(etas["disclaimer"]).lower():
-        raise PipelineError("etas_params disclaimer must state prediction limits")
+    validate_etas_params(load_json(web_data / "etas_params.json"))
 
     return {
         "source": meta["source"],

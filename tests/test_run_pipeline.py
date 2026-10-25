@@ -113,6 +113,7 @@ def _minimal_root(tmp_path: Path) -> Path:
             "canonical_etas": {
                 "source": "AFAD kanonik katalog",
                 "branching_ratio": 0.8,
+                "skill_vs_climatology_pct": 40.0,
                 "warning": "tanı göstergesi",
             },
             "rj_aftershock": {"model": "Reasenberg-Jones"},
@@ -712,7 +713,11 @@ def _served_root(tmp_path: Path, *, area_skill_score: float = 0.4) -> Path:
     _write_json(
         web_data / "etas_params.json",
         {
-            "canonical_etas": {"source": "AFAD kanonik katalog", "warning": "tanı göstergesi"},
+            "canonical_etas": {
+                "source": "AFAD kanonik katalog",
+                "warning": "tanı göstergesi",
+                "skill_vs_climatology_pct": 40.0,
+            },
             "rj_aftershock": {"model": "Reasenberg-Jones"},
             "disclaimer": "Kesin deprem tahmini DEĞİLDİR.",
         },
@@ -780,3 +785,43 @@ def test_build_steps_check_surface_returns_no_steps():
     options = runner.PipelineOptions(source="afad", check_surface=True)
 
     assert runner.build_steps(options) == []
+
+
+# --- served ETAS skill must be a measured, finite number ---
+
+
+@pytest.mark.parametrize("bad", [float("nan"), float("inf"), "71.1", None, True])
+def test_served_surface_rejects_unmeasured_etas_skill(tmp_path: Path, bad):
+    """Servis edilen ETAS becerisi sonlu bir SAYI olmalı (string/NaN/None = ölçülmemiş)."""
+    runner = _load_runner()
+    root = _served_root(tmp_path)
+    path = root / "web" / "data" / "etas_params.json"
+    etas = json.loads(path.read_text(encoding="utf-8"))
+    etas["canonical_etas"]["skill_vs_climatology_pct"] = bad
+    path.write_text(json.dumps(etas), encoding="utf-8")
+
+    with pytest.raises(runner.PipelineError, match="skill_vs_climatology_pct"):
+        runner.validate_served_surface(root, require_site_layer=True)
+
+
+def test_served_surface_rejects_missing_etas_skill(tmp_path: Path):
+    runner = _load_runner()
+    root = _served_root(tmp_path)
+    path = root / "web" / "data" / "etas_params.json"
+    etas = json.loads(path.read_text(encoding="utf-8"))
+    del etas["canonical_etas"]["skill_vs_climatology_pct"]
+    path.write_text(json.dumps(etas), encoding="utf-8")
+
+    with pytest.raises(runner.PipelineError, match="skill_vs_climatology_pct"):
+        runner.validate_served_surface(root, require_site_layer=True)
+
+
+def test_etas_export_script_has_no_hardcoded_skill_literal():
+    """Regresyon: 11_export_etas_params.py beceriyi ÖLÇMELİ, elle yazmamalı.
+
+    Eskiden `"skill_vs_climatology_pct": 71.1` literal'i vardı; katalog güncellenince
+    servis edilen iddia ölçülen değerden (bu katalogda +40.0%) sessizce ıraksıyordu.
+    """
+    src = (Path(__file__).resolve().parents[1] / "scripts" / "11_export_etas_params.py").read_text(encoding="utf-8")
+    assert "evaluate_etas_windows" in src
+    assert '"skill_vs_climatology_pct": 71.1' not in src
