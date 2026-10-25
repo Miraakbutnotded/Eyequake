@@ -27,10 +27,12 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from eyequake.analysis.seismology import b_value_aki, magnitude_of_completeness  # noqa: E402
 from eyequake.config import PROCESSED_DIR, TURKEY, WEB_DATA_DIR  # noqa: E402
-from eyequake.forecast.etas import branching_ratio, fit_etas  # noqa: E402
+from eyequake.forecast.etas import branching_ratio, evaluate_etas_windows  # noqa: E402
+from eyequake.web.export import read_catalog_source  # noqa: E402
 
 MIN_MAG = 4.0
 TRAIN_FRAC = 0.75
+WINDOW_DAYS = 30.0
 
 
 def main() -> int:
@@ -41,9 +43,11 @@ def main() -> int:
 
     t = ((sub["time"] - sub["time"].iloc[0]).dt.total_seconds() / 86_400.0).to_numpy()
     m = sub["mag"].to_numpy()
-    k = int(len(t) * TRAIN_FRAC)
-
-    params = fit_etas(t[:k], m[:k], m0=MIN_MAG, T0=0.0, T1=float(t[k]))
+    # Fit + zaman-dışı beceri 08_etas.py ile AYNI fonksiyondan: stamplanan beceri
+    # elle yazılmış bir literal değil, bu koşuda ölçülen değerdir (deployed == evaluated).
+    ev = evaluate_etas_windows(t, m, m0=MIN_MAG, train_frac=TRAIN_FRAC, window_days=WINDOW_DAYS)
+    params = ev.params
+    source = read_catalog_source(PROCESSED_DIR / f"{TURKEY.name}_summary.json")
     bval = b_value_aki(m, magnitude_of_completeness(m)).b
     n = branching_ratio(params, bval)
 
@@ -82,7 +86,7 @@ def main() -> int:
     out = {
         "generated": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
         "canonical_etas": {
-            "source": "AFAD kanonik katalog, temporal ETAS MLE (M≥4.0, train %75)",
+            "source": f"{source} katalog, temporal ETAS MLE (M≥{MIN_MAG}, train %75)",
             "mu": round(params.mu, 5),
             "K": round(params.K, 5),
             "c": round(params.c, 5),
@@ -91,7 +95,9 @@ def main() -> int:
             "m0": params.m0,
             "b_value": round(bval, 3),
             "branching_ratio": round(n, 3) if n is not None else None,
-            "skill_vs_climatology_pct": 71.1,
+            "skill_vs_climatology_pct": round(100.0 * ev.skill_vs_climatology, 1),
+            "skill_metric": f"Poisson deviance, {WINDOW_DAYS:g}g test pencereleri",
+            "n_test_windows": int(ev.actual.size),
             "warning": warning,
         },
         "rj_aftershock": {
@@ -111,9 +117,10 @@ def main() -> int:
 
     WEB_DATA_DIR.mkdir(parents=True, exist_ok=True)
     path = WEB_DATA_DIR / "etas_params.json"
-    path.write_text(json.dumps(out, ensure_ascii=False, indent=2), encoding="utf-8")
+    path.write_text(json.dumps(out, ensure_ascii=False, indent=2, allow_nan=False), encoding="utf-8")
     print(f"Yazıldı: {path}")
     print(f"  canonical n={out['canonical_etas']['branching_ratio']} (tanı) | "
+          f"beceri={out['canonical_etas']['skill_vs_climatology_pct']:+.1f}% | "
           f"rj: a={out['rj_aftershock']['a']} p={out['rj_aftershock']['p']}")
     return 0
 

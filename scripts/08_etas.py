@@ -14,18 +14,13 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-import numpy as np
 import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from eyequake.analysis.seismology import b_value_aki, magnitude_of_completeness  # noqa: E402
 from eyequake.config import PROCESSED_DIR, TURKEY  # noqa: E402
-from eyequake.forecast.etas import (  # noqa: E402
-    branching_ratio,
-    expected_count,
-    fit_etas,
-)
+from eyequake.forecast.etas import branching_ratio, evaluate_etas_windows  # noqa: E402
 from eyequake.forecast.evaluate import score, skill_score  # noqa: E402
 
 MIN_MAG = 4.0
@@ -44,14 +39,13 @@ def main() -> int:
     m = sub["mag"].to_numpy()
     T_end = float(t[-1])
 
-    k = int(len(t) * TRAIN_FRAC)
-    T_split = float(t[k])
+    ev = evaluate_etas_windows(t, m, m0=MIN_MAG, train_frac=TRAIN_FRAC, window_days=WINDOW_DAYS)
+    params, k, T_split = ev.params, ev.n_train_events, ev.t_split
 
     print(f"M≥{MIN_MAG} | olay: {len(t)} | süre: {T_end / 365.25:.1f} yıl")
     print(f"Train: [0, {T_split / 365.25:.1f}yıl] ({k} olay) | Test: kalan")
 
     # --- ETAS fit (train) ---
-    params = fit_etas(t[:k], m[:k], m0=MIN_MAG, T0=0.0, T1=T_split)
     bval = b_value_aki(m, magnitude_of_completeness(m)).b
     n_branch = branching_ratio(params, bval)
     print("\n=== FİT EDİLEN ETAS PARAMETRELERİ ===")
@@ -60,22 +54,9 @@ def main() -> int:
     print(f"log-olabilirlik = {params.loglik:.1f}")
     print(f"dallanma oranı n = {n_branch:.3f}" if n_branch else "dallanma oranı: tanımsız (α≥β)")
 
-    # --- Test pencereleri: beklenen vs gerçek ---
-    win_starts = np.arange(T_split, T_end - WINDOW_DAYS, WINDOW_DAYS)
-    actual, etas_pred = [], []
-    for ws in win_starts:
-        we = ws + WINDOW_DAYS
-        actual.append(int(np.sum((t >= ws) & (t < we))))
-        hist = t < ws
-        etas_pred.append(expected_count(params, t[hist], m[hist], ws, we))
-    actual = np.array(actual, dtype=float)
-    etas_pred = np.array(etas_pred, dtype=float)
-
-    # --- Baseline'lar (train pencere ortalaması + persistence) ---
-    train_starts = np.arange(0.0, T_split - WINDOW_DAYS, WINDOW_DAYS)
-    train_counts = [int(np.sum((t >= s) & (t < s + WINDOW_DAYS))) for s in train_starts]
-    clim = np.full(len(actual), float(np.mean(train_counts)))
-    persistence = np.concatenate([[clim[0]], actual[:-1]])
+    # --- Test pencereleri vs baseline'lar (train pencere ortalaması + persistence) ---
+    actual, etas_pred = ev.actual, ev.etas_pred
+    clim, persistence = ev.climatology, ev.persistence
 
     s_etas = score(actual, etas_pred)
     s_clim = score(actual, clim)
@@ -88,7 +69,7 @@ def main() -> int:
         print(f"{name:<22} {s['mae']:>7.2f} {s['poisson_deviance']:>9.3f} "
               f"{skill_score(s['poisson_deviance'], base):>+9.1%}")
 
-    sk = skill_score(s_etas["poisson_deviance"], base)
+    sk = ev.skill_vs_climatology
     if sk > 0:
         print(f"\nVERDICT: ETAS climatology'yi %{sk * 100:.1f} yendi → fiziksel-temelli "
               "olasılıksal oran öngörüsü çalışıyor (artçı tetiklenmesi).")
