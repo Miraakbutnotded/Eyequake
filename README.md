@@ -29,6 +29,9 @@ konuşur, pazarlama değil.
 
 - **Birincil (kanonik):** AFAD ulusal ağ kataloğu — Türkiye, 1990–bugün, 156k+ olay.
   Temiz Gutenberg-Richter b≈1.0 (sağlam katalog), il/ilçe metadata. `scripts/07_fetch_afad.py`.
+  **Not (2026-10):** AFAD apiv2 artık yalnızca son ~11 günü servis ediyor; `07` tarihsel
+  katalogu çekemez (boş yıl → hata). Güncel veri artımlı arşivle birikir — bkz. aşağıda
+  *Otomatik veri yenileme*.
 - **Karşılaştırma/yedek:** USGS FDSN Event API (açık, anahtarsız). `scripts/01_fetch_catalog.py`.
   USGS Türkiye'de M<4 için zaman-değişken tamlık taşır (b≈0.53 artefakt) — bkz. `reports/FINDINGS.md`.
 - Bina-seviyesi veri (BIS) ileri aşama — şirket raporundaki bilinen veri açığı.
@@ -67,6 +70,69 @@ python3 -m venv .venv
 ```bash
 ./.venv/bin/python scripts/01_fetch_catalog.py
 ```
+
+## Sonuçları yeniden üretme
+
+AFAD kanonik katalogdan statik web çıktılarına kadar ana hattı tek komutla çalıştır:
+
+```bash
+./.venv/bin/python scripts/run_pipeline.py --source afad --export-web
+```
+
+Bu komut AFAD kataloğunu indirir, `web/data/` çıktılarını üretir, zemin/saha
+katmanını ekler, ETAS/artçı parametrelerini export eder, ardından `ruff` ve
+`pytest --cov` kalite kapılarını çalıştırır. Mevcut veriyle yalnız kontrat
+kontrolü yapmak için:
+
+```bash
+./.venv/bin/python scripts/run_pipeline.py --check
+```
+
+Yükseklik API'si veya cache erişimi sorun çıkarırsa site katmanını atlayarak hızlı
+web export çalıştır:
+
+```bash
+./.venv/bin/python scripts/run_pipeline.py --skip-fetch --skip-site-layer --export-web
+```
+
+Yakın-canlı AFAD kontrolü için son pencereyi tek sefer çek:
+
+```bash
+./.venv/bin/python scripts/watch_afad.py --once --lookback-minutes 120 --min-mag 0
+```
+
+Bu komut volatil `web/data/live_events.geojson` ve `web/data/live_meta.json`
+dosyalarını yazar. Sürekli izleme için:
+
+```bash
+./.venv/bin/python scripts/watch_afad.py --interval 60 --min-mag 0
+```
+
+`live_meta.json`, `checked_at`, `latest_event_time`, `lag_minutes` ve `status`
+alanlarıyla AFAD feed tazeliğini raporlar.
+
+## Otomatik veri yenileme (GitHub Actions)
+
+`.github/workflows/data-refresh.yml` 6 saatte bir `scripts/12_update_catalog.py`'yi koşar:
+AFAD API ufku (~11 gün) içindeki olayları çeker, `catalog-archive` dalındaki arşive
+(`afad_events.csv.gz` + `manifest.json`) ekler. Revize olaylarda son sürüm kazanır;
+güncelleyici ufuktan uzun süre koşmadıysa kaçan aralık `manifest.json` → `gaps`'e yazılır
+(geri getirilemez, sessizce yutulmaz).
+
+Servis edilen harita (`web/data/`) yalnızca arşiv **≥ 10 yıl** kapsadığında yeniden
+üretilir (`export_ready`); aksi halde birkaç günlük veriden kurulan bir harita iyi yüzeyin
+üstüne yazılırdı. Arşivi tarihsel veriyle tohumlamak için (ör. deprem.afad.gov.tr katalog
+dışa aktarımı, ortak şema ya da AFAD sütun adlarıyla CSV):
+
+```bash
+git worktree add ../eq-archive catalog-archive
+./.venv/bin/python scripts/12_update_catalog.py --archive-dir ../eq-archive --seed afad_export.csv
+git -C ../eq-archive add -A && git -C ../eq-archive commit -m "data: tarihsel AFAD seed"   && git -C ../eq-archive push origin HEAD:catalog-archive
+```
+
+Seed'in bitişi ile canlı arşivin başı arasındaki aralık da `gaps`'e kaydedilir. Scheduled
+workflow'lar yalnızca varsayılan dalda (`main`) çalışır; elle tetikleme: Actions →
+*Data refresh* → *Run workflow*.
 
 ## Ekip
 

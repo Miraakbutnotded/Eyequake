@@ -72,8 +72,14 @@ def make_supervised(
     names = [f"n_events_lag{i}" for i in range(1, n_lags + 1)]
     names += [f"max_mag_lag{i}" for i in range(1, n_lags + 1)]
 
+    # Geçmiş n_lags'ten kısaysa hiç satır üretilmez. np.asarray([]) bu durumda (0,)
+    # şeklinde 1-B dizi verir; X'in her zaman 2-B (n, len(names)) olduğunu varsayan
+    # downstream kod (X.shape[1], model.fit) kapalı bir hatayla patlar. Boş halde de
+    # sütun sayısını koruyarak şekil kontratını sabit tutuyoruz.
+    X = np.asarray(rows, dtype=float) if rows else np.empty((0, len(names)), dtype=float)
+
     return Supervised(
-        X=np.asarray(rows),
+        X=X,
         y=np.asarray(targets),
         window_starts=pd.DatetimeIndex(kept_starts),
         feature_names=names,

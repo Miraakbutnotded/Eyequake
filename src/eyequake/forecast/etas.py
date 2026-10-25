@@ -22,6 +22,9 @@ from dataclasses import dataclass
 import numpy as np
 from scipy.optimize import minimize
 
+from .baselines import climatology_forecast, persistence_forecast
+from .evaluate import score, skill_score
+
 
 @dataclass(frozen=True)
 class ETASParams:
@@ -97,6 +100,87 @@ def expected_count(
     lower = (window_start - hist_t + c) ** (1.0 - p)
     trig = np.sum(K * np.exp(alpha * (hist_m - m0)) * (upper - lower) / (1.0 - p))
     return float(bg + trig)
+
+
+@dataclass(frozen=True)
+class ETASEvaluation:
+    """Zaman-dışı ETAS değerlendirmesi: test pencerelerinde beklenen vs gerçek sayım."""
+
+    params: ETASParams
+    t_split: float              # train/test sınırı (gün)
+    n_train_events: int
+    actual: np.ndarray          # test penceresi başına gerçek olay sayısı
+    etas_pred: np.ndarray       # yalnızca pencere-öncesi geçmişten ETAS beklentisi
+    climatology: np.ndarray     # train pencere ortalaması (Poisson background)
+    persistence: np.ndarray     # önceki pencerenin gerçeği
+    skill_vs_climatology: float  # Poisson deviance beceri skoru (>0 → yendi)
+    skill_vs_persistence: float
+
+
+def evaluate_etas_windows(
+    t: np.ndarray, m: np.ndarray, *, m0: float,
+    train_frac: float = 0.75, window_days: float = 30.0,
+) -> ETASEvaluation:
+    """ETAS'ı train'de fit eder, test pencerelerinde baseline'lara karşı ölçer.
+
+    Tek doğruluk kaynağı: `scripts/08_etas.py` (rapor) ve `scripts/11_export_etas_
+    params.py` (web'e stamplanan beceri) AYNI hesabı kullanır — servis edilen beceri
+    sayısı elle yazılmış bir literal değil, her koşuda yeniden ölçülen değerdir.
+
+    t: olay zamanları (gün, artan sıralı); m: büyüklükler.
+    Yetersiz train/test penceresinde ValueError (sessiz NaN beceri yerine).
+    """
+    t = np.asarray(t, dtype=float)
+    m = np.asarray(m, dtype=float)
+    if t.size != m.size:
+        raise ValueError("t ve m aynı uzunlukta olmalı")
+    if t.size < 2 or np.any(np.diff(t) < 0):
+        raise ValueError("t en az 2 olay içermeli ve artan sıralı olmalı")
+    k = int(t.size * train_frac)
+    if not 0 < k < t.size:
+        raise ValueError(f"train_frac={train_frac} geçerli bir train/test bölünmesi vermiyor")
+    t_split, t_end = float(t[k]), float(t[-1])
+
+    win_starts = np.arange(t_split, t_end - window_days, window_days)
+    train_starts = np.arange(0.0, t_split - window_days, window_days)
+    if win_starts.size == 0 or train_starts.size == 0:
+        raise ValueError(
+            f"{window_days:g} günlük pencerelerle train ({train_starts.size}) veya test "
+            f"({win_starts.size}) penceresi kurulamadı; beceri ölçülemez."
+        )
+
+    params = fit_etas(t[:k], m[:k], m0=m0, T0=0.0, T1=t_split)
+
+    actual, etas_pred = [], []
+    for ws in win_starts:
+        we = ws + window_days
+        actual.append(int(np.sum((t >= ws) & (t < we))))
+        hist = t < ws
+        etas_pred.append(expected_count(params, t[hist], m[hist], ws, we))
+    actual_arr = np.asarray(actual, dtype=float)
+    etas_arr = np.asarray(etas_pred, dtype=float)
+
+    train_counts = np.asarray(
+        [np.sum((t >= s) & (t < s + window_days)) for s in train_starts], dtype=float
+    )
+    clim = climatology_forecast(train_counts, actual_arr.size)
+    pers = persistence_forecast(train_counts, actual_arr)
+
+    dev = {
+        name: score(actual_arr, pred)["poisson_deviance"]
+        for name, pred in (("etas", etas_arr), ("clim", clim), ("pers", pers))
+    }
+    return ETASEvaluation(
+        params=params,
+        t_split=t_split,
+        n_train_events=k,
+        actual=actual_arr,
+        etas_pred=etas_arr,
+        climatology=clim,
+        persistence=pers,
+        skill_vs_climatology=skill_score(dev["etas"], dev["clim"]),
+        skill_vs_persistence=skill_score(dev["etas"], dev["pers"]),
+    )
 
 
 def branching_ratio(params: ETASParams, b_value: float) -> float | None:

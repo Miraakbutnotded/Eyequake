@@ -35,6 +35,17 @@ def _to_utc(series: pd.Series) -> pd.Series:
     return pd.to_datetime(series, utc=True, format="ISO8601")
 
 
+def _grid_edges(lo: float, hi: float, cell_deg: float) -> np.ndarray:
+    """[lo, hi] aralığını kapsayan tam-sayı sayıda hücre kenarı.
+
+    `np.arange(lo, hi + d, d)` float kayması yüzünden eksenler arasında tutarsız
+    sayıda bin üretiyordu (örn. d=0.1'de enlem 71, boylam 195 → bölge dışında
+    fazladan bir satır). Bin sayısını tam sayıdan kurmak bunu deterministik yapar.
+    """
+    n_bins = max(1, int(np.ceil((hi - lo) / cell_deg - 1e-9)))
+    return lo + cell_deg * np.arange(n_bins + 1)
+
+
 def spatial_grid_rates(
     df: pd.DataFrame, region: Region, cell_deg: float = 0.25, min_mag: float = 4.0
 ) -> HazardGrid:
@@ -42,12 +53,16 @@ def spatial_grid_rates(
 
     Oran paydası tüm katalog süresidir (tutarlı normalizasyon).
     """
+    if cell_deg <= 0:
+        raise ValueError("cell_deg pozitif olmalı")
     times = _to_utc(df["time"])
     catalog_years = (times.max() - times.min()).total_seconds() / _SECONDS_PER_YEAR
+    if not catalog_years > 0:  # boş katalog (NaN) veya tek an → oran tanımsız
+        raise ValueError("Katalog süresi sıfır/tanımsız; yıllık oran hesaplanamaz.")
 
     sub = df[df["mag"] >= min_mag]
-    lon_edges = np.arange(region.min_lon, region.max_lon + cell_deg, cell_deg)
-    lat_edges = np.arange(region.min_lat, region.max_lat + cell_deg, cell_deg)
+    lon_edges = _grid_edges(region.min_lon, region.max_lon, cell_deg)
+    lat_edges = _grid_edges(region.min_lat, region.max_lat, cell_deg)
 
     counts, _, _ = np.histogram2d(
         sub["latitude"].to_numpy(),
@@ -71,7 +86,9 @@ def spatial_grid_rates(
                         "annual_rate": round(float(annual_rate[i, j]), 4),
                     }
                 )
-    cell_table = pd.DataFrame(rows).sort_values("annual_rate", ascending=False)
+    cell_table = pd.DataFrame(
+        rows, columns=["lat", "lon", "n_events", "annual_rate"]
+    ).sort_values("annual_rate", ascending=False)
 
     return HazardGrid(
         lon_edges=lon_edges,

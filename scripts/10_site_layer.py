@@ -48,7 +48,7 @@ def cell_center(feature: dict) -> tuple[float, float]:
 
 def main() -> int:
     gj_path = WEB_DATA_DIR / "hazard_cells.geojson"
-    gj = json.loads(gj_path.read_text())
+    gj = json.loads(gj_path.read_text(encoding="utf-8"))
     features = gj["features"]
     print(f"Hücre: {len(features)}")
 
@@ -99,7 +99,7 @@ def main() -> int:
         })
         counts[cls] = counts.get(cls, 0) + 1
 
-    gj_path.write_text(json.dumps(gj))
+    gj_path.write_text(json.dumps(gj, allow_nan=False), encoding="utf-8")
 
     print("\n=== NEHRP zemin sınıfı dağılımı ===")
     for c in ["E", "D", "C", "B", "A"]:

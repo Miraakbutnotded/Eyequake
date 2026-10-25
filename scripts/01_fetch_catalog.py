@@ -59,6 +59,7 @@ def main() -> int:
     clean.to_csv(clean_path, index=False)
 
     summary = completeness_summary(clean)
+    summary["source"] = "USGS"  # provenance: downstream "AFAD" diye etiketlemesin
     summary_path = PROCESSED_DIR / f"{TURKEY.name}_summary.json"
     summary_path.write_text(json.dumps(summary, indent=2, ensure_ascii=False))
 

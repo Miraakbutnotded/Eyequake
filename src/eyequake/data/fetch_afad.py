@@ -9,6 +9,7 @@ downstream (clean, EDA, hazard, web) değişmeden çalışır.
 from __future__ import annotations
 
 import time
+from datetime import datetime, timedelta
 from urllib.parse import quote
 
 import pandas as pd
@@ -55,6 +56,25 @@ def _normalize(records: list[dict]) -> pd.DataFrame:
     )
 
 
+def _fetch_year(session, url: str, timeout: int, max_tries: int, backoff_seconds: float):
+    """Tek yılı çeker; ağ/HTTP/JSON hatasında üstel backoff ile yeniden dener."""
+    for attempt in range(max_tries):
+        try:
+            resp = session.get(url, timeout=timeout)
+            resp.raise_for_status()
+            records = resp.json() if resp.text.strip() else []
+            if not isinstance(records, list):
+                raise ValueError(f"beklenmeyen AFAD yanıtı: {type(records).__name__}")
+            return _normalize(records)
+        except (requests.RequestException, ValueError) as exc:
+            if attempt == max_tries - 1:
+                raise
+            wait = backoff_seconds * (2**attempt)
+            print(f"    {exc} -> {wait:g}s bekle, yeniden dene ({attempt + 1}/{max_tries})")
+            time.sleep(wait)
+    raise AssertionError("unreachable")
+
+
 def fetch_catalog_afad(
     region: Region,
     start_year: int,
@@ -62,9 +82,26 @@ def fetch_catalog_afad(
     min_magnitude: float,
     pause_seconds: float = 0.4,
     timeout: int = 120,
+    max_tries: int = 4,
+    backoff_seconds: float = 5.0,
+    allow_gaps: bool = False,
+    min_events_per_year: int = 1,
 ) -> pd.DataFrame:
-    """AFAD kataloğunu yıllık paging ile çeker, ortak şemaya normalize eder."""
+    """AFAD kataloğunu yıllık paging ile çeker, ortak şemaya normalize eder.
+
+    Bir yıl tüm denemelerden sonra hâlâ çekilemezse varsayılan olarak RuntimeError
+    (fail-closed): eksik bir yıl kanonik katalogda sessiz bir boşluk bırakır, tüm
+    yıllık oranları aşağı çeker ve zaman-dışı beceri ölçümünü bozar. Boşluklu bir
+    katalog bilerek isteniyorsa `allow_gaps=True`.
+
+    `min_events_per_year` altında olay dönen yıl da eksik sayılır: HTTP 200 + boş
+    liste bir "başarı" gibi görünür ama Türkiye'de M≥2.5'te olaysız bir yıl yoktur.
+    (2026-10'da AFAD apiv2 yalnızca son ~11 günü döndürmeye başladı; 1990-2025 her
+    yıl 0 olay geldi ve 45 olaylık bir "kanonik katalog" yazıldı.) Küçük bölge /
+    yüksek eşik için 0 geç.
+    """
     frames: list[pd.DataFrame] = []
+    failed: dict[int, str] = {}
     with requests.Session() as session:
         session.headers.update({"User-Agent": "EyeQuake-research-prototype/0.1"})
         for year in range(start_year, end_year + 1):
@@ -73,19 +110,61 @@ def fetch_catalog_afad(
                 region, min_magnitude,
             )
             try:
-                resp = session.get(url, timeout=timeout)
-                resp.raise_for_status()
-                records = resp.json() if resp.text.strip() else []
-                frame = _normalize(records)
+                frame = _fetch_year(session, url, timeout, max_tries, backoff_seconds)
                 frames.append(frame)
                 print(f"  {year}: {len(frame):>7} olay")
+                if len(frame) < min_events_per_year:
+                    failed[year] = f"yalnızca {len(frame)} olay (< {min_events_per_year})"
             except (requests.RequestException, ValueError) as exc:
+                failed[year] = str(exc)
                 print(f"  {year}: HATA — {exc}")
             time.sleep(pause_seconds)
 
     if not frames:
         raise RuntimeError("AFAD'dan hiç veri çekilemedi.")
+    if failed and not allow_gaps:
+        years = ", ".join(str(y) for y in sorted(failed))
+        raise RuntimeError(
+            f"AFAD kataloğu eksik: {years} yılları çekilemedi ya da boş döndü. "
+            "Boşluklu katalog yıllık oranları sessizce düşürür; tekrar çalıştır "
+            "(ya da bilerek allow_gaps=True)."
+        )
 
     catalog = pd.concat(frames, ignore_index=True)
     catalog = catalog.drop_duplicates(subset="id").reset_index(drop=True)
     return catalog
+
+
+def fetch_window_afad(
+    region: Region,
+    start: datetime,
+    end: datetime,
+    min_magnitude: float,
+    *,
+    chunk_hours: float = 24.0,
+    pause_seconds: float = 0.4,
+    timeout: int = 120,
+    max_tries: int = 4,
+    backoff_seconds: float = 5.0,
+) -> pd.DataFrame:
+    """[start, end] aralığını `chunk_hours`'lık parçalarla çeker (artımlı arşiv için).
+
+    Herhangi bir parça tüm denemelerden sonra çekilemezse hata — kısmi pencere
+    arşive "kapsandı" diye yazılmamalı. Zamanlar UTC (AFAD naive tarihleri UTC'dir).
+    """
+    if end <= start:
+        raise ValueError("end, start'tan sonra olmalı")
+    fmt = "%Y-%m-%d %H:%M:%S"
+    frames: list[pd.DataFrame] = []
+    with requests.Session() as session:
+        session.headers.update({"User-Agent": "EyeQuake-research-prototype/0.1"})
+        cur = start
+        while cur < end:
+            nxt = min(cur + timedelta(hours=chunk_hours), end)
+            url = _build_url(cur.strftime(fmt), nxt.strftime(fmt), region, min_magnitude)
+            frames.append(_fetch_year(session, url, timeout, max_tries, backoff_seconds))
+            cur = nxt
+            if cur < end:
+                time.sleep(pause_seconds)
+    catalog = pd.concat(frames, ignore_index=True)
+    return catalog.drop_duplicates(subset="id", keep="last").reset_index(drop=True)

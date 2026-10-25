@@ -10,6 +10,7 @@ from eyequake.forecast.etas import (
     _integral,
     _intensity_at_events,
     branching_ratio,
+    evaluate_etas_windows,
     expected_count,
     fit_etas,
 )
@@ -63,3 +64,58 @@ def test_fit_etas_returns_valid_params():
     assert params.mu > 0 and params.K >= 0
     assert 1.01 <= params.p <= 3.0       # bounds içinde
     assert np.isfinite(params.loglik)
+
+
+def _poisson_catalog(n: int = 300, days: float = 2000.0, seed: int = 1):
+    rng = np.random.default_rng(seed)
+    t = np.sort(rng.uniform(0.0, days, size=n))
+    m = 4.0 + rng.exponential(1.0 / np.log(10.0), size=n)  # GR, b=1
+    return t, m
+
+
+def test_evaluate_etas_windows_is_out_of_time_and_shapes_align():
+    t, m = _poisson_catalog()
+    ev = evaluate_etas_windows(t, m, m0=4.0, train_frac=0.75, window_days=30.0)
+    assert ev.n_train_events == int(len(t) * 0.75)
+    assert ev.t_split == pytest.approx(t[ev.n_train_events])
+    n = ev.actual.size
+    assert n > 0
+    assert ev.etas_pred.shape == ev.climatology.shape == ev.persistence.shape == (n,)
+    # Test pencereleri yalnızca split'ten SONRAKİ olayları sayar.
+    assert ev.actual.sum() <= np.sum(t >= ev.t_split)
+    assert np.isfinite(ev.skill_vs_climatology)
+    assert np.isfinite(ev.skill_vs_persistence)
+
+
+def test_evaluate_etas_windows_does_not_fake_skill_on_poisson_data():
+    """Saf Poisson katalogda ETAS climatology'yi anlamlı biçimde yenmemeli.
+
+    Kümelenme yoksa tetikleme terimi bilgi taşımaz; büyük pozitif beceri burada
+    sızıntı (leakage) ya da hatalı baseline işareti olurdu.
+    """
+    t, m = _poisson_catalog(n=400, days=3000.0, seed=3)
+    ev = evaluate_etas_windows(t, m, m0=4.0)
+    assert ev.skill_vs_climatology < 0.2
+
+
+def test_evaluate_etas_windows_climatology_is_train_window_mean():
+    t, m = _poisson_catalog()
+    ev = evaluate_etas_windows(t, m, m0=4.0, window_days=30.0)
+    starts = np.arange(0.0, ev.t_split - 30.0, 30.0)
+    expected = np.mean([np.sum((t >= s) & (t < s + 30.0)) for s in starts])
+    assert np.allclose(ev.climatology, expected)
+
+
+@pytest.mark.parametrize(
+    "t, m, kwargs",
+    [
+        (np.array([0.0]), np.array([4.0]), {}),                       # tek olay
+        (np.array([0.0, 1.0, 2.0]), np.array([4.0, 4.0]), {}),        # uzunluk uyuşmuyor
+        (np.array([2.0, 1.0, 3.0]), np.array([4.0, 4.0, 4.0]), {}),   # sırasız
+        (np.linspace(0, 10, 20), np.full(20, 4.0), {"window_days": 30.0}),  # pencere yok
+        (np.linspace(0, 900, 50), np.full(50, 4.0), {"train_frac": 0.0}),
+    ],
+)
+def test_evaluate_etas_windows_rejects_unmeasurable_setups(t, m, kwargs):
+    with pytest.raises(ValueError):
+        evaluate_etas_windows(t, m, m0=4.0, **kwargs)

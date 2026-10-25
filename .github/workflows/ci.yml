@@ -19,3 +19,12 @@ jobs:
         run: ruff check .
       - name: Test (pytest + coverage)
         run: pytest -q --cov=eyequake --cov-report=term-missing
+
+      # Enforce the served-surface gates (honesty + NOT-FOR-PRICING E&O guard +
+      # the stamped "beats area-uniform Poisson baseline" claim) on the COMMITTED
+      # web/data on every push. Deterministic: validates only tracked web/data/*,
+      # so it needs no network fetch and no processed catalog (data/processed/ is
+      # gitignored / absent in CI). The FULL recompute of the skill claim from the
+      # real catalog is the local/release gate: scripts/run_pipeline.py --check.
+      - name: Validate served surface (E&O + skill claim)
+        run: python scripts/run_pipeline.py --check-surface

@@ -62,9 +62,11 @@ def build_event_features(
         "last_mag", "recent_mean_mag", "recent_max_mag",
         "recent_std_mag", "days_since_last", "recent_rate_per_day",
     ]
+    # k'dan az olayda X boş ama 2-B kalır (windows.make_supervised ile aynı kontrat).
+    X = np.asarray(rows, dtype=float) if rows else np.empty((0, len(names)), dtype=float)
     return EventFeatures(
-        X=np.asarray(rows),
-        y=np.asarray(targets),
+        X=X,
+        y=np.asarray(targets, dtype=float),
         feature_names=names,
         times=pd.DatetimeIndex(kept),
     )

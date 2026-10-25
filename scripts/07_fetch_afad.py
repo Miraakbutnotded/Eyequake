@@ -1,4 +1,8 @@
-"""AFAD (resmi ulusal ağ) kataloğunu indirir → kanonik katalog olur.
+"""AFAD (resmi ulusal ağ) kataloğunu indirir -> kanonik katalog olur.
+
+UYARI (2026-10): AFAD apiv2 artık yalnızca son ~11 günü servis ediyor; tarihsel
+yıllar boş döner ve fetch fail-closed hata verir. Güncel veri için artımlı arşiv:
+scripts/12_update_catalog.py.
 
 USGS'in tamlık sorununu çözer. Çıktı processed/turkey_catalog.csv'yi günceller,
 böylece downstream scriptler (02-06) otomatik AFAD verisini kullanır.
@@ -36,7 +40,7 @@ def main() -> int:
     RAW_DIR.mkdir(parents=True, exist_ok=True)
     PROCESSED_DIR.mkdir(parents=True, exist_ok=True)
 
-    print(f"AFAD → {TURKEY.name} | {args.start_year}-{args.end_year} | M≥{args.min_mag}")
+    print(f"AFAD -> {TURKEY.name} | {args.start_year}-{args.end_year} | M>={args.min_mag}")
     raw = fetch_catalog_afad(
         region=TURKEY,
         start_year=args.start_year,
@@ -56,7 +60,7 @@ def main() -> int:
 
     print("\n--- ÖZET (AFAD) ---")
     print(f"Ham olay: {len(raw)} | temiz olay: {summary['n_events']}")
-    print(f"Tarih: {summary['date_min']} → {summary['date_max']}")
+    print(f"Tarih: {summary['date_min']} -> {summary['date_max']}")
     print(f"Büyüklük: {summary['mag_min']} – {summary['mag_max']}")
     print("\nKanonik katalog güncellendi. Şimdi 02-06 scriptlerini AFAD ile çalıştır.")
     return 0
