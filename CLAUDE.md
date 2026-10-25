@@ -37,6 +37,9 @@ python3 -m venv .venv
 # Yükseklik API'si / cache sorunluysa site katmanını atla
 ./.venv/bin/python scripts/run_pipeline.py --skip-fetch --skip-site-layer --export-web
 
+# Artımlı AFAD arşiv güncellemesi (CI'da 6 saatte bir; bkz. data-refresh.yml)
+./.venv/bin/python scripts/12_update_catalog.py --archive-dir data/archive
+
 # Yakın-canlı AFAD feed kontrolü (volatil web/data/live_*.* yazar)
 ./.venv/bin/python scripts/watch_afad.py --once --lookback-minutes 120 --min-mag 0
 ```
@@ -56,6 +59,9 @@ Tek katalog + tek dürüst değerlendirme, üç bilimsel zeminde yan yana kurulu
 ### Veri akışı
 `scripts/07_fetch_afad.py` (AFAD, **kanonik**) → `data/clean.py:clean_catalog` (UTC parse, dedup-by-id, türetilmiş `year`/`interevent_days`) → `analysis/` + `forecast/` → `web/export.py` (GeoJSON: `build_cell_index` → `cells_to_geojson`, `events_to_geojson`). `data/{raw,processed}/` ve `reports/figures/` üretilir, **versiyonlanmaz** (`.gitignore`).
 
+- **AFAD apiv2 yalnızca son ~11 günü servis eder (2026-10).** Tarihsel çekim (`07`) çalışmaz;
+  veri `12_update_catalog.py` ile `catalog-archive` dalındaki arşivde birikir. Arşiv < 10 yıl
+  iken servis yüzeyi yeniden üretilmez. Kaçan aralıklar `manifest.json` `gaps`'te.
 - **AFAD = kanonik** Türkiye katalogu (temiz Gutenberg-Richter b≈1.0). USGS (`scripts/01`, `data/fetch.py`) yalnızca karşılaştırma/yedek — Türkiye M<4'te tamlık artefaktı taşır (b≈0.53). Yeni iş AFAD'ı varsayar.
 - Bölge/fay tanımları ve katalog varsayılanları (`CATALOG_START_YEAR=1990`, `DEFAULT_MIN_MAGNITUDE=2.5`) tek yerde: `src/eyequake/config.py`.
 

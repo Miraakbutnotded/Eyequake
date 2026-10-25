@@ -9,6 +9,7 @@ downstream (clean, EDA, hazard, web) değişmeden çalışır.
 from __future__ import annotations
 
 import time
+from datetime import datetime, timedelta
 from urllib.parse import quote
 
 import pandas as pd
@@ -132,3 +133,38 @@ def fetch_catalog_afad(
     catalog = pd.concat(frames, ignore_index=True)
     catalog = catalog.drop_duplicates(subset="id").reset_index(drop=True)
     return catalog
+
+
+def fetch_window_afad(
+    region: Region,
+    start: datetime,
+    end: datetime,
+    min_magnitude: float,
+    *,
+    chunk_hours: float = 24.0,
+    pause_seconds: float = 0.4,
+    timeout: int = 120,
+    max_tries: int = 4,
+    backoff_seconds: float = 5.0,
+) -> pd.DataFrame:
+    """[start, end] aralığını `chunk_hours`'lık parçalarla çeker (artımlı arşiv için).
+
+    Herhangi bir parça tüm denemelerden sonra çekilemezse hata — kısmi pencere
+    arşive "kapsandı" diye yazılmamalı. Zamanlar UTC (AFAD naive tarihleri UTC'dir).
+    """
+    if end <= start:
+        raise ValueError("end, start'tan sonra olmalı")
+    fmt = "%Y-%m-%d %H:%M:%S"
+    frames: list[pd.DataFrame] = []
+    with requests.Session() as session:
+        session.headers.update({"User-Agent": "EyeQuake-research-prototype/0.1"})
+        cur = start
+        while cur < end:
+            nxt = min(cur + timedelta(hours=chunk_hours), end)
+            url = _build_url(cur.strftime(fmt), nxt.strftime(fmt), region, min_magnitude)
+            frames.append(_fetch_year(session, url, timeout, max_tries, backoff_seconds))
+            cur = nxt
+            if cur < end:
+                time.sleep(pause_seconds)
+    catalog = pd.concat(frames, ignore_index=True)
+    return catalog.drop_duplicates(subset="id", keep="last").reset_index(drop=True)

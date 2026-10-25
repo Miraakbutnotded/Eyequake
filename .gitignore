@@ -10,6 +10,7 @@ htmlcov/
 # Data (regenerated from source APIs — not versioned)
 data/raw/
 data/processed/
+data/archive/
 reports/figures/
 web/data/live_events.geojson
 web/data/live_meta.json

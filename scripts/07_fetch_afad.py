@@ -1,5 +1,9 @@
 """AFAD (resmi ulusal ağ) kataloğunu indirir -> kanonik katalog olur.
 
+UYARI (2026-10): AFAD apiv2 artık yalnızca son ~11 günü servis ediyor; tarihsel
+yıllar boş döner ve fetch fail-closed hata verir. Güncel veri için artımlı arşiv:
+scripts/12_update_catalog.py.
+
 USGS'in tamlık sorununu çözer. Çıktı processed/turkey_catalog.csv'yi günceller,
 böylece downstream scriptler (02-06) otomatik AFAD verisini kullanır.
 
