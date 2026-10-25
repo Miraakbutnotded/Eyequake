@@ -102,3 +102,24 @@ def test_non_list_payload_is_treated_as_failure(patch_session):
     patch_session({2020: [_Resp({"message": "rate limited"})] * 2})
     with pytest.raises(RuntimeError, match="hiç veri"):
         fetch_afad.fetch_catalog_afad(TURKEY, 2020, 2020, 2.5, max_tries=2)
+
+
+def test_empty_years_fail_closed_like_missing_years(patch_session):
+    """HTTP 200 + [] başarı DEĞİL: geçmişi servis etmeyen API sahte katalog üretmemeli.
+
+    Gerçek olay (2026-10): AFAD apiv2 yalnızca son ~11 günü döndürdü; 1990-2025 her
+    yıl 0 olay geldi ve pipeline 45 olaylık bir 'kanonik katalog' yazdı.
+    """
+    patch_session({
+        2024: [_Resp([])],
+        2025: [_Resp([])],
+        2026: [_Resp([_record("a", 2026)])],
+    })
+    with pytest.raises(RuntimeError, match="2024, 2025"):
+        fetch_afad.fetch_catalog_afad(TURKEY, 2024, 2026, 2.5)
+
+
+def test_empty_year_allowed_when_threshold_is_zero(patch_session):
+    patch_session({2024: [_Resp([])], 2025: [_Resp([_record("a", 2025)])]})
+    df = fetch_afad.fetch_catalog_afad(TURKEY, 2024, 2025, 6.5, min_events_per_year=0)
+    assert df["id"].tolist() == ["a"]

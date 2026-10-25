@@ -84,6 +84,7 @@ def fetch_catalog_afad(
     max_tries: int = 4,
     backoff_seconds: float = 5.0,
     allow_gaps: bool = False,
+    min_events_per_year: int = 1,
 ) -> pd.DataFrame:
     """AFAD kataloğunu yıllık paging ile çeker, ortak şemaya normalize eder.
 
@@ -91,6 +92,12 @@ def fetch_catalog_afad(
     (fail-closed): eksik bir yıl kanonik katalogda sessiz bir boşluk bırakır, tüm
     yıllık oranları aşağı çeker ve zaman-dışı beceri ölçümünü bozar. Boşluklu bir
     katalog bilerek isteniyorsa `allow_gaps=True`.
+
+    `min_events_per_year` altında olay dönen yıl da eksik sayılır: HTTP 200 + boş
+    liste bir "başarı" gibi görünür ama Türkiye'de M≥2.5'te olaysız bir yıl yoktur.
+    (2026-10'da AFAD apiv2 yalnızca son ~11 günü döndürmeye başladı; 1990-2025 her
+    yıl 0 olay geldi ve 45 olaylık bir "kanonik katalog" yazıldı.) Küçük bölge /
+    yüksek eşik için 0 geç.
     """
     frames: list[pd.DataFrame] = []
     failed: dict[int, str] = {}
@@ -105,6 +112,8 @@ def fetch_catalog_afad(
                 frame = _fetch_year(session, url, timeout, max_tries, backoff_seconds)
                 frames.append(frame)
                 print(f"  {year}: {len(frame):>7} olay")
+                if len(frame) < min_events_per_year:
+                    failed[year] = f"yalnızca {len(frame)} olay (< {min_events_per_year})"
             except (requests.RequestException, ValueError) as exc:
                 failed[year] = str(exc)
                 print(f"  {year}: HATA — {exc}")
@@ -115,7 +124,7 @@ def fetch_catalog_afad(
     if failed and not allow_gaps:
         years = ", ".join(str(y) for y in sorted(failed))
         raise RuntimeError(
-            f"AFAD kataloğu eksik: {years} yılları {max_tries} denemede çekilemedi. "
+            f"AFAD kataloğu eksik: {years} yılları çekilemedi ya da boş döndü. "
             "Boşluklu katalog yıllık oranları sessizce düşürür; tekrar çalıştır "
             "(ya da bilerek allow_gaps=True)."
         )
