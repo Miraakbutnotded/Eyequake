@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import math
 import subprocess
 import sys
 from dataclasses import dataclass
@@ -285,6 +286,25 @@ def assert_min_mag_complete(min_mag: float, mc: float) -> None:
         )
 
 
+def assert_finite_skill(name: str, value: float) -> float:
+    """A skill claim must be a FINITE number; NaN/Inf is an unmeasured claim.
+
+    Every skill gate below is a `<=` threshold test, and IEEE-754 makes every
+    comparison with NaN false — so an un-guarded NaN would slip through a `<= 0`
+    check as if it had beaten the baseline. NaN reaches here realistically: an
+    empty-training-window baseline yields `mean([]) = nan`, `skill_score` then
+    propagates it, and `json` round-trips bare `NaN` without complaint. Rejecting
+    non-finite values first makes the gates fail-closed instead of fail-open.
+    """
+    val = float(value)
+    if not math.isfinite(val):
+        raise PipelineError(
+            f"{name} sonlu bir sayı değil ({value!r}); beceri ölçülememiş demektir. "
+            "Ölçülmemiş bir skor baseline'ı yendi sayılamaz (fail-closed)."
+        )
+    return val
+
+
 def assert_gain_top25(gain: float | None) -> None:
     """Top-25% concentration gain must exceed 1.0 (area-uniform baseline).
 
@@ -298,7 +318,7 @@ def assert_gain_top25(gain: float | None) -> None:
         raise PipelineError(
             "gain_top25 hesaplanamadı (test penceresinde olay yok); yüzey gain değerini gösteremiyor."
         )
-    if float(gain) <= 1.0:
+    if assert_finite_skill("gain_top25", gain) <= 1.0:
         raise PipelineError(
             f"gain_top25 ({gain}) <= 1.0: en riskli %25 alan gelecek olayları "
             "alan-uniform baseline'ı yenecek oranda toplamıyor; yüzey triage değeri yok."
@@ -321,7 +341,7 @@ def assert_beats_baseline(area_skill_score: float | None) -> None:
             "Uzaysal beceri ölçülemedi (test penceresinde eğitim hücrelerine düşen "
             "olay yok); yüzey baseline'ı yendiğini gösteremiyor."
         )
-    if float(area_skill_score) <= 0.0:
+    if assert_finite_skill("area_skill_score", area_skill_score) <= 0.0:
         raise PipelineError(
             f"area_skill_score ({area_skill_score}) <= 0: yüzey alan-uniform Poisson "
             "baseline'ını YENMİYOR; bu yüzey ship edilemez (çekirdek baseline kuralı)."

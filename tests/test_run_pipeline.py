@@ -3,6 +3,7 @@ from __future__ import annotations
 import importlib.util
 import inspect
 import json
+import math
 import sys
 from pathlib import Path
 
@@ -497,6 +498,43 @@ def test_assert_gain_top25_raises_at_or_below_one():
     for value in (1.0, 0.8, None):
         with pytest.raises(runner.PipelineError, match="gain_top25"):
             runner.assert_gain_top25(value)
+
+
+# --- non-finite skill must FAIL CLOSED (NaN/Inf bypass regression) ---
+
+
+@pytest.mark.parametrize("bad", [float("nan"), float("inf"), float("-inf")])
+def test_skill_gates_reject_non_finite_scores(bad):
+    """NaN/Inf bir beceri skoru kapıları GEÇMEMELİ.
+
+    IEEE-754'te NaN ile yapılan her karşılaştırma False'tur; `<= 0.0` ve `<= 1.0`
+    eşik testleri bu yüzden NaN'ı sessizce "baseline'ı yendi" saymıştı (fail-open).
+    Bu, projenin çekirdek baseline kuralının makine-zorunlu biçimindeki bir delikti.
+    """
+    runner = _load_runner()
+    with pytest.raises(runner.PipelineError, match="sonlu"):
+        runner.assert_beats_baseline(bad)
+    with pytest.raises(runner.PipelineError, match="sonlu"):
+        runner.assert_gain_top25(bad)
+
+
+def test_served_surface_rejects_nan_skill_from_json(tmp_path: Path):
+    """NaN, JSON gidiş-dönüşünde hayatta kalır — yüzey kapısı onu yakalamalı.
+
+    json.dumps çıplak `NaN` yazar ve json.loads onu geri okur, yani NaN'lı bir
+    meta.json diske yazılıp CI'dan geçebilirdi.
+    """
+    runner = _load_runner()
+    assert math.isnan(json.loads(json.dumps({"s": float("nan")}))["s"])
+
+    root = _served_root(tmp_path)
+    meta_path = root / "web" / "data" / "meta.json"
+    meta = json.loads(meta_path.read_text(encoding="utf-8"))
+    meta["area_skill_score"] = float("nan")
+    meta_path.write_text(json.dumps(meta), encoding="utf-8")
+
+    with pytest.raises(runner.PipelineError, match="sonlu"):
+        runner.validate_served_surface(root, require_site_layer=True)
 
 
 def test_validate_served_surface_rejects_gain_at_or_below_one(tmp_path: Path):
