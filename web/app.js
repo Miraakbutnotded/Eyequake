@@ -106,10 +106,26 @@ function resetPanel() { setMode("empty"); }
 // --- Map init ---
 const map = L.map("map", { zoomControl: true }).setView(TURKEY_CENTER, 6);
 
-L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
-  attribution:
-    '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>',
-  subdomains: "abcd",
+// Altlık: Esri World Dark Gray Canvas (anahtarsız). CARTO basemaps artık API anahtarı
+// istiyor ve anahtarsız isteğe "API KEY REQUIRED" karosu döndürüyor (2026-10).
+const ESRI_CANVAS = "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas";
+const ESRI_ATTR =
+  'Altlık &copy; <a href="https://www.esri.com/">Esri</a>, HERE, Garmin, ' +
+  '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> katkıcıları';
+
+L.tileLayer(`${ESRI_CANVAS}/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}`, {
+  attribution: ESRI_ATTR,
+  maxNativeZoom: 16,
+  maxZoom: 19,
+}).addTo(map);
+
+// Yer adları ayrı şeffaf katman: risk hücrelerinin ÜSTÜNDE kalsın, tıklamayı engellemesin.
+map.createPane("labels");
+map.getPane("labels").style.zIndex = 450;
+map.getPane("labels").style.pointerEvents = "none";
+L.tileLayer(`${ESRI_CANVAS}/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}`, {
+  pane: "labels",
+  maxNativeZoom: 16,
   maxZoom: 19,
 }).addTo(map);
 
