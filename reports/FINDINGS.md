@@ -146,6 +146,11 @@ penceresi küçük havzaları düzleştiriyor (Wald-Allen ~1 km için kalibre).
 **Sınırlar:** Vs30 ~bölgesel çözünürlük (mikrobölgeleme değil); sıvılaşma tarama
 göstergesi (sondaj/yağış verisi içermez); deniz hücreleri yumuşak çıkar (maskeleme fast-follow).
 
+**Bina katmanı (BIS Faz-1, `frag-1.0.0`):** kullanıcı-girişli bina karnesi → göreli
+kırılganlık sınıfı (A..F) → saha skoruna sınırlı çarpan (`analysis/fragility.py`).
+Uzman-türetilmiş taksonomi; **sonuç-doğrulaması yok** — sayısal beceri iddiası yapılmaz,
+fiyatlama kapısı kapalı. Ayrıntı: `reports/FRAGILITY_MODEL_CARD.md`.
+
 ## Belirsizlik notu
 
 Skor tablolarındaki nokta-tahminler (örn. +%71.1 beceri) **tek bir 75/25 train/test

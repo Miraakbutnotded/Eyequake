@@ -38,6 +38,13 @@ BANNED_CLAIMS = (
     "ne zaman deprem",         # POSITIONING: "ne zaman … deprem"
     "nerede deprem",           # POSITIONING: "nerede … deprem"
     "kaç büyüklüğünde deprem",  # POSITIONING: "kaç büyüklüğünde deprem"
+    # BIS bina katmanı (POSITIONING: "bina hasar/çökme tahmini"): göreli kırılganlık
+    # sınıfı hasar/çökme vaadi olarak sunulamaz (E&O + dürüstlük).
+    "hasar tahmini",
+    "çökme tahmini",
+    "bina çökecek",
+    "yıkılacak",
+    "collapse predicted",
 )
 
 # POSITIONING "İstisna: disclaimer / negatif / test-ettik-reddettik" markerları.

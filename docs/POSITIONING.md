@@ -34,6 +34,8 @@ inşaat şirketleri · belediye/kentsel dönüşüm · afet kurumu · son kullan
 - "yapay sinir ağları / neural network ile tahmin"
 - "ne zaman / nerede / kaç büyüklüğünde deprem"
 - "erken uyarı sistemi" (sensör tabanlı, bizde yok)
+- "bina hasar/çökme tahmini", "bina çökecek / yıkılacak" (BIS kırılganlık sınıfı
+  göreli ve tanımlayıcıdır; mühendislik hasar tespiti / RBTE yerine geçmez)
 
 > **İstisna:** disclaimer / negatif / "test ettik-reddettik" bağlamı KALIR —
 > örn. "deprem tahmini DEĞİLDİR", "deterministik tahrip mümkün değil (Track C)".
