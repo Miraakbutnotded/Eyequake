@@ -89,6 +89,9 @@ def build_steps(options: PipelineOptions) -> list[Step]:
         if not options.skip_site_layer:
             steps.append(Step("site-layer", (py, "scripts/10_site_layer.py")))
         steps.append(Step("export-etas-params", (py, "scripts/11_export_etas_params.py")))
+        steps.append(
+            Step("export-fragility-params", (py, "scripts/13_export_fragility_params.py"))
+        )
     steps.extend(
         [
             Step("ruff", (py, "-m", "ruff", "check", ".")),

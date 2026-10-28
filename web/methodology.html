@@ -58,6 +58,23 @@
        yerine geçmez. <strong>Sıvılaşma</strong> yalnızca bir tarama göstergesidir —
        jeoteknik değerlendirme değil, sondaj verisi içermez.</p>
 
+    <h2><span class="tag mid">⚠️ Deneysel</span> Bina karnesi (BIS Faz-1)</h2>
+    <p>Hücre panelindeki form; yapı tipi, yapım yılı (TR deprem yönetmeliği dönemleri:
+       1975 / 1998 / 2007 / 2018), kat sayısı, yumuşak kat, düzensizlik, onarılmamış hasar,
+       imar barışı ve güçlendirme bilgisini <strong>göreli bir kırılganlık sınıfına</strong>
+       (A = en kırılgan … F) ve saha-risk üzerine binen <strong>sınırlı bir çarpana</strong>
+       çevirir. Eksik bilgi iyimser bir sayıyla doldurulmaz: güven (κ) düştükçe çarpan 1'e
+       doğru büzülür ve skor saha-risk'e geri döner.</p>
+    <p>Web formundaki her karne <strong>beyan</strong> sayılır (doğrulanmamış). Beyan skoru en
+       fazla %10 düşürebilir; kötüleştiren beyan tam uygulanır. Karne tarayıcıda hesaplanır ve
+       hiçbir yere gönderilmez.</p>
+    <p><strong>Sınır:</strong> model uzman-türetilmiş bir taksonomidir (EMS-98 tarzı), eğitilmiş
+       bir model değildir. 2023 hasar-tespit verisine karşı <strong>sonuç-doğrulaması yapılmadı</strong>
+       — bu yüzden fiyatlama için kullanılamaz. Sınıf, mühendislik hasar tespiti / RBTE yerine
+       geçmez; bina hasar/çökme tahmini değildir. Model kartı:
+       <a href="https://github.com/Miraakbutnotded/Eyequake/blob/main/reports/FRAGILITY_MODEL_CARD.md"
+          target="_blank">reports/FRAGILITY_MODEL_CARD.md</a>.</p>
+
     <h2><span class="tag mid">⚠️ Mütevazı</span> Artçı aktivite beklentisi</h2>
     <p>Büyük bir deprem sonrası, standart <strong>Reasenberg-Jones</strong> modeliyle
        beklenen artçı sayısının kaba istatistiksel aralığı. <strong>Belirsizlik yüksektir</strong>

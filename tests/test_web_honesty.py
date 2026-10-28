@@ -76,6 +76,27 @@ def test_outward_web_copy_has_no_positive_banned_claim():
         assert hits == [], f"{name} pozitif yasaklı-iddia içeriyor: {[h.phrase for h in hits]}"
 
 
+def test_fragility_params_loaded_from_json_not_hardcoded():
+    # BIS formülü fragility_params.json'dan (Python export) gelir; JS'te parametre yok.
+    app = _read("app.js")
+    assert "fragility_params.json" in app and "selfCheck" in app, \
+        "bina karnesi parametreleri JSON'dan yüklenmeli + altın-vektör denetimi koşmalı"
+    js = _read("fragility.js")
+    code = re.sub(r"//[^\n]*|/\*.*?\*/", "", js, flags=re.S)
+    decimals = re.findall(r"(?<![\w.])\d+\.\d+", code)
+    assert decimals == [], f"fragility.js ondalık parametre literal'i içeriyor: {decimals}"
+
+
+def test_building_card_framing_and_trust():
+    html = _read("index.html")
+    assert "RBTE yerine geçmez" in html, "sınıf yanında hasar-tespiti-değil ibaresi olmalı"
+    assert "fiyatlama için kullanılamaz" in html, "NOT-FOR-PRICING web'de görünmeli"
+    app = _read("app.js")
+    # Web formu karneyi yalnız beyan sayar; doğrulanmış kaynak iddiası anti-gaming deliği olur.
+    assert 'source: "self_reported"' in app
+    assert '"surveyed"' not in app and '"official"' not in app
+
+
 def main() -> int:
     tests = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
     failed = 0

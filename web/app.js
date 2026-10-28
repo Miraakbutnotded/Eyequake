@@ -145,6 +145,175 @@ function showCell(props, latlng) {
     "Bu v2 indeks AFAD geçmişinden türetilen oran, büyüklük, enerji, güncellik, " +
     "sığlık ve saha sinyallerinin Türkiye genelindeki yüzdelik sıralamasıdır. " +
     "Gelecekteki bir depremin zamanını/büyüklüğünü tahmin etmez.";
+  bisSiteRisk = hasValue(props.site_risk) ? Number(props.site_risk) : null;
+  renderBis();
+}
+
+// --- Bina karnesi (BIS Faz-1) ---
+// Formül + parametreler: fragility.js + data/fragility_params.json (Python'dan export,
+// hardcoded değil). Karne tarayıcıda hesaplanır; hiçbir yere gönderilmez.
+let FRAG = null;
+let bisSiteRisk = null;
+
+const STRUCTURE_LABELS = {
+  rc_frame: "Betonarme çerçeve",
+  rc_shearwall: "Betonarme perdeli",
+  confined_masonry: "Kuşatılmış (donatılı) yığma",
+  unreinforced_masonry: "Donatısız yığma (tuğla/taş)",
+  precast_industrial: "Prefabrik / sanayi yapısı",
+  steel: "Çelik",
+  timber_other: "Ahşap / diğer",
+  unknown: "Bilinmiyor",
+};
+const BIS_FIELD_LABELS = {
+  structure_type: "Yapı tipi", year_built: "Yapım yılı", n_floors: "Kat sayısı",
+  retrofit_year: "Güçlendirme yılı", source: "Kaynak",
+};
+// Beyan karnesi en fazla κ=0.5 alır → tam doldurulsa da "sınırlı güven" görünür;
+// etiket eksik bilgiyi değil güven düzeyini anlatmalı.
+const RESOLUTION_LABELS = {
+  building_full: "yüksek güven — tam çarpan",
+  building_partial: "sınırlı güven — çarpan κ ile 1'e doğru büzüldü",
+  site_only: "düşük güven — yalnız saha skoru",
+};
+
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, (c) =>
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+}
+
+function bisDisable(msg) {
+  FRAG = null;
+  const off = document.getElementById("bisOff");
+  off.textContent = msg;
+  off.classList.remove("hidden");
+  document.getElementById("bisForm").classList.add("hidden");
+  document.getElementById("bisResult").innerHTML = "";
+}
+
+function initBis(params) {
+  if (!params || !window.EyeQuakeFragility) {
+    bisDisable("Bina karnesi parametreleri yüklenemedi — form kapalı.");
+    return;
+  }
+  const model = window.EyeQuakeFragility.create(params);
+  const mismatches = model.selfCheck();
+  if (mismatches.length) {
+    // Fail-closed: JS portu Python modelinden saptıysa yanlış skor gösterme.
+    console.error("[EyeQuake] fragility altın-vektör sapması:", mismatches);
+    bisDisable("Model tutarlılık denetimi başarısız — bina karnesi formu kapalı.");
+    return;
+  }
+  FRAG = model;
+  document.getElementById("bisType").innerHTML = params.structure_types
+    .map((t) => `<option value="${esc(t)}"${t === "unknown" ? " selected" : ""}>` +
+      `${esc(STRUCTURE_LABELS[t] || t)}</option>`)
+    .join("");
+  document.querySelectorAll(".bis-tri").forEach((sel) => {
+    sel.innerHTML = '<option value="">Bilinmiyor</option>' +
+      '<option value="1">Evet</option><option value="0">Hayır</option>';
+  });
+  document.getElementById("bisAdjacency").textContent = params.class_adjacency;
+  document.getElementById("bisForm").addEventListener("input", renderBis);
+  renderBis();
+}
+
+function readBisCard() {
+  const form = document.getElementById("bisForm");
+  const errors = [];
+  const intField = (name) => {
+    const raw = form.elements[name].value.trim();
+    if (raw === "") return null;
+    const n = Number(raw);
+    if (!Number.isInteger(n)) {
+      errors.push([name, "tam sayı olmalı"]);
+      return null;
+    }
+    return n;
+  };
+  const tri = (name) => {
+    const v = form.elements[name].value;
+    return v === "" ? null : v === "1";
+  };
+  const retrofit = tri("retrofit");
+  const ry = form.elements.retrofit_year;
+  ry.disabled = retrofit !== true;
+  const card = {
+    structure_type: form.elements.structure_type.value,
+    year_built: intField("year_built"),
+    n_floors: intField("n_floors"),
+    soft_story: tri("soft_story"),
+    irregularity: tri("irregularity"),
+    pounding_risk: tri("pounding_risk"),
+    prior_unrepaired_damage: tri("prior_unrepaired_damage"),
+    amnesty_imar_barisi: tri("amnesty_imar_barisi"),
+    retrofit,
+    retrofit_year: retrofit === true ? intField("retrofit_year") : null,
+    source: "self_reported", // web formu doğrulanmış kaynak kabul etmez (anti-gaming)
+  };
+  const empty = card.structure_type === "unknown" &&
+    Object.entries(card).every(([k, v]) => ["structure_type", "source"].includes(k) || v === null);
+  return { card, errors, empty };
+}
+
+function renderBis() {
+  const out = document.getElementById("bisResult");
+  if (!FRAG) return;
+  if (bisSiteRisk === null) {
+    out.innerHTML = '<p class="bis-msg">Bu hücrede saha-risk skoru yok — karne uygulanamaz.</p>';
+    return;
+  }
+  const { card, errors, empty } = readBisCard();
+  if (empty) {
+    out.innerHTML = `<p class="bis-msg">Alanları doldurdukça saha-risk (${bisSiteRisk}) ` +
+      "bina bilgisiyle göreli olarak düzeltilir.</p>";
+    return;
+  }
+  const o = errors.length ? { errors } : FRAG.overlay(bisSiteRisk, card, new Date().getFullYear());
+  if (o.errors.length) {
+    out.innerHTML = '<ul class="bis-errors">' + o.errors
+      .map(([f, m]) => `<li>${esc(BIS_FIELD_LABELS[f] || f)}: ${esc(m)}</li>`).join("") + "</ul>";
+    return;
+  }
+  const P = FRAG.params;
+  const a = o.assessment;
+  const stop = riskStyle(o.parcel_risk);
+  const notes = o.notes.filter((n) => n !== P.class_adjacency);
+  let html =
+    '<div class="bis-score">' +
+    '<div class="score-label">Bina-düzeltilmiş göreli skor</div>' +
+    `<div class="bis-value" style="color:${stop.color}">${o.parcel_risk}</div>` +
+    `<div class="bis-from">saha-risk ${o.site_risk} → ${o.parcel_risk}</div></div>` +
+    '<dl class="metrics">';
+  if (o.applied) {
+    html +=
+      `<div><dt>Kırılganlık sınıfı</dt><dd>${esc(a.vulnerability_class)} — ` +
+      `${esc(P.class_meaning[a.vulnerability_class])}</dd></div>` +
+      `<div><dt>Uygulanan çarpan</dt><dd>×${fmt(o.multiplier_effective, 3)}</dd></div>` +
+      `<div><dt>Ham çarpan · güven κ</dt><dd>×${fmt(a.multiplier_raw, 2)} · ${fmt(a.kappa, 2)}</dd></div>`;
+  }
+  html +=
+    `<div><dt>Çözünürlük</dt><dd>${esc(RESOLUTION_LABELS[o.resolution])}</dd></div>` +
+    `<div><dt>Model</dt><dd>${esc(P.fragility_model_version)}</dd></div></dl>`;
+  if (o.reason === "low_confidence") {
+    html += '<p class="bis-msg">Karne çok eksik (κ düşük) — skor değiştirilmedi. ' +
+      "Yapı tipi, yapım yılı ve kat sayısı en çok bilgi taşır.</p>";
+  }
+  if (o.applied && o.site_risk * o.multiplier_effective > 100) {
+    html += '<p class="bis-msg">Skor 100 üst sınırına kırpıldı — bu hücrede bina etkisi ' +
+      "ölçeğin tavanında görünmez.</p>";
+  }
+  if (o.downward_capped) {
+    html += '<p class="bis-msg">Beyan skoru en fazla %10 düşürebilir — sınır uygulandı.</p>';
+  }
+  const imputed = a ? a.imputed_fields.map((f) => BIS_FIELD_LABELS[f] || f) : [];
+  if (o.applied && imputed.length) {
+    html += `<p class="bis-msg">Bilinmeyen: ${esc(imputed.join(", "))} — kohort ortalaması kullanıldı.</p>`;
+  }
+  const warnings = a ? a.plausibility_warnings : [];
+  html += [...notes, ...warnings].map((n) => `<p class="bis-msg">${esc(n)}</p>`).join("");
+  html += `<p class="bis-msg bis-disclaimer">${esc(P.disclaimer)}</p>`;
+  out.innerHTML = html;
 }
 
 // --- Recent event panel ---
@@ -292,13 +461,15 @@ function toggleRecentLayer() {
 // --- Static layers + boot ---
 async function load() {
   try {
-    const [meta, hazard, events, etasParams] = await Promise.all([
+    const [meta, hazard, events, etasParams, fragilityParams] = await Promise.all([
       fetch("./data/meta.json").then((r) => r.json()),
       fetch("./data/hazard_cells.geojson").then((r) => r.json()),
       fetch("./data/big_events.geojson").then((r) => r.json()),
       fetch("./data/etas_params.json").then((r) => r.json()).catch(() => null),
+      fetch("./data/fragility_params.json").then((r) => r.json()).catch(() => null),
     ]);
     if (etasParams?.rj_aftershock) RJ = etasParams.rj_aftershock; // hardcoded değil, provenance'lı
+    initBis(fragilityParams);
 
     document.getElementById("meta").textContent =
       `${hazard.features.length} hücre · ${events.features.length} büyük deprem (M≥6) · güncellendi ${meta.generated}`;

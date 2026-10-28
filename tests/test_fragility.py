@@ -164,6 +164,12 @@ def test_validation_rejects_with_field(kw, bad_field):
     assert bad_field in [f for f, _ in exc.value.errors]
 
 
+def test_invalid_year_does_not_leak_into_retrofit_range():
+    with pytest.raises(CardValidationError) as exc:
+        assess_building(_full(year_built=2300, retrofit=True, retrofit_year=2024), YEAR)
+    assert [f for f, _ in exc.value.errors] == ["year_built"]
+
+
 def test_validation_collects_all_errors():
     with pytest.raises(CardValidationError) as exc:
         assess_building(_full(year_built=2300, n_floors=0, source="x"), YEAR)

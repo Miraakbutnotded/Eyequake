@@ -178,6 +178,7 @@ def test_build_steps_includes_fetch_export_site_params_and_quality_gates():
         "export-web-data",
         "site-layer",
         "export-etas-params",
+        "export-fragility-params",
         "ruff",
         "pytest",
     ]

@@ -73,6 +73,51 @@
         <p class="note">*Sıvılaşma bir <strong>tarama göstergesidir</strong> — jeoteknik
            değerlendirme değil, sondaj/yeraltı suyu verisi içermez. Vs30 ~bölgesel
            çözünürlükte (eğimden türetilmiş), mikrobölgeleme yerine geçmez.</p>
+
+        <details class="bis-card" id="bisCard">
+          <summary>Bina karnesi ekle <span class="bis-tag">beyan · deneysel</span></summary>
+          <p class="bis-off hidden" id="bisOff"></p>
+          <form class="bis-form" id="bisForm" onsubmit="return false" autocomplete="off">
+            <label class="bis-wide">Yapı tipi
+              <select name="structure_type" id="bisType"></select>
+            </label>
+            <label>Yapım yılı
+              <input type="number" name="year_built" min="1900" step="1" placeholder="bilinmiyor" inputmode="numeric" />
+            </label>
+            <label>Kat sayısı
+              <input type="number" name="n_floors" min="1" max="60" step="1" placeholder="bilinmiyor" inputmode="numeric" />
+            </label>
+            <label>Yumuşak / zayıf kat
+              <select name="soft_story" class="bis-tri"></select>
+            </label>
+            <label>Plan/düşey düzensizlik
+              <select name="irregularity" class="bis-tri"></select>
+            </label>
+            <label>Bitişik bina çarpışma riski
+              <select name="pounding_risk" class="bis-tri"></select>
+            </label>
+            <label>Onarılmamış hasar
+              <select name="prior_unrepaired_damage" class="bis-tri"></select>
+            </label>
+            <label>İmar barışı kaydı
+              <select name="amnesty_imar_barisi" class="bis-tri"></select>
+            </label>
+            <label>Güçlendirme yapıldı
+              <select name="retrofit" class="bis-tri"></select>
+            </label>
+            <label class="bis-wide">Güçlendirme yılı
+              <input type="number" name="retrofit_year" min="1900" step="1" placeholder="—" inputmode="numeric" disabled />
+            </label>
+          </form>
+          <div class="bis-result" id="bisResult" aria-live="polite"></div>
+          <p class="note" id="bisAdjacency">Göreli, tanımlayıcı yapısal kırılganlık sınıfı (EMS-98
+             tarzı); mühendislik hasar tespiti / RBTE yerine geçmez, çökme/hasar tahmini değildir.</p>
+          <p class="note">Web formundaki her karne <strong>beyan</strong> sayılır (doğrulanmamış):
+             beyan skoru en fazla %10 düşürebilir, kötüleştiren beyan tam uygulanır. Uzman-türetilmiş
+             model, sonuç-doğrulaması yok — <strong>fiyatlama için kullanılamaz</strong>.
+             Karne tarayıcıda hesaplanır, hiçbir yere gönderilmez.</p>
+        </details>
+
         <p class="note"><a href="./methodology.html" target="_blank">Nasıl hesaplanır + dürüst sınırlar →</a></p>
       </div>
 
@@ -106,6 +151,7 @@
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
           integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-  <script src="./app.js?v=4"></script>
+  <script src="./fragility.js?v=1"></script>
+  <script src="./app.js?v=5"></script>
 </body>
 </html>

@@ -167,6 +167,37 @@ html, body { margin: 0; height: 100%; background: var(--eq-black); color: var(--
 }
 .back-btn:hover { border-color: var(--eq-yellow); color: var(--eq-text); }
 
+/* --- Bina karnesi (BIS Faz-1) --- */
+.bis-card { margin-top: 16px; border: 1px solid #2a2a2a; border-radius: 10px; padding: 0 14px; }
+.bis-card[open] { padding-bottom: 14px; }
+.bis-card summary {
+  cursor: pointer; padding: 12px 0; font-size: 13px; font-weight: 700; color: var(--eq-yellow);
+}
+.bis-tag {
+  margin-left: 6px; font-size: 10px; font-weight: 500; color: var(--eq-muted);
+  border: 1px solid #333; border-radius: 999px; padding: 1px 7px; vertical-align: 1px;
+}
+.bis-form { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.bis-form label { display: flex; flex-direction: column; gap: 4px; font-size: 11px; color: var(--eq-muted); }
+.bis-wide { grid-column: 1 / -1; }
+.bis-form select, .bis-form input {
+  background: #0f0f0f; color: var(--eq-text); border: 1px solid #333; border-radius: 6px;
+  padding: 7px 8px; font-size: 13px; font-family: inherit; width: 100%;
+}
+.bis-form select:focus, .bis-form input:focus { outline: none; border-color: var(--eq-yellow); }
+.bis-form input:disabled { opacity: 0.4; }
+.bis-result { margin-top: 14px; }
+.bis-result .metrics > div { gap: 12px; }
+.bis-result .metrics dt { flex-shrink: 0; }
+.bis-result .metrics dd { text-align: right; font-size: 13px; }
+.bis-score { text-align: center; margin-bottom: 12px; }
+.bis-value { font-size: 44px; font-weight: 800; line-height: 1.1; }
+.bis-from { font-size: 12px; color: var(--eq-muted); }
+.bis-msg { font-size: 12px; color: #cfcfcf; line-height: 1.5; margin: 10px 0 0; }
+.bis-disclaimer { color: #ff9fad; }
+.bis-off { font-size: 12px; color: #ff9fad; margin: 0 0 4px; }
+.bis-errors { margin: 0; padding-left: 18px; font-size: 12px; color: #ff9fad; line-height: 1.6; }
+
 @media (max-width: 760px) {
   .layout { flex-direction: column; }
   .panel { width: 100%; max-height: 42%; border-left: none; border-top: 1px solid #2a2a2a; }

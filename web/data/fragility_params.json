@@ -1,0 +1,421 @@
+{
+  "fragility_model_version": "frag-1.0.0",
+  "source": "Uzman-türetilmiş taksonomi (EMS-98 × TBDY dönemi × yapı tipi), sonuç-doğrulaması yok. Bkz. reports/FRAGILITY_MODEL_CARD.md",
+  "use_restriction": "NOT-FOR-PRICING — göreli triage göstergesi, fiyatlama kullanımı kapalı.",
+  "disclaimer": "Göreli yapısal kırılganlık göstergesi — hasar/çökme tahmini DEĞİLDİR.",
+  "class_adjacency": "Göreli, tanımlayıcı yapısal kırılganlık sınıfı (EMS-98 tarzı); mühendislik hasar tespiti / RBTE yerine geçmez, çökme/hasar tahmini değildir.",
+  "self_report_badge": "Beyana dayalı — doğrulanmamış.",
+  "site_only_note": "Bina verisi yok → yalnız zemin × hazard skoru.",
+  "class_meaning": {
+    "A": "çok yüksek göreli kırılganlık",
+    "B": "yüksek",
+    "C": "orta-yüksek",
+    "D": "orta",
+    "E": "düşük",
+    "F": "çok düşük"
+  },
+  "structure_types": [
+    "rc_frame",
+    "rc_shearwall",
+    "confined_masonry",
+    "unreinforced_masonry",
+    "precast_industrial",
+    "steel",
+    "timber_other",
+    "unknown"
+  ],
+  "sources": [
+    "self_reported",
+    "surveyed",
+    "official"
+  ],
+  "eras": [
+    "pre1975",
+    "1975_1997",
+    "1998_2006",
+    "2007_2017",
+    "post2018"
+  ],
+  "era_breaks": [
+    1975,
+    1998,
+    2007,
+    2018
+  ],
+  "base": {
+    "unreinforced_masonry": [
+      0.85,
+      0.8,
+      0.72,
+      0.65,
+      0.55
+    ],
+    "confined_masonry": [
+      0.7,
+      0.62,
+      0.52,
+      0.45,
+      0.38
+    ],
+    "rc_frame": [
+      0.78,
+      0.7,
+      0.55,
+      0.42,
+      0.3
+    ],
+    "rc_shearwall": [
+      0.6,
+      0.52,
+      0.4,
+      0.3,
+      0.2
+    ],
+    "precast_industrial": [
+      0.72,
+      0.65,
+      0.55,
+      0.45,
+      0.35
+    ],
+    "steel": [
+      0.45,
+      0.4,
+      0.33,
+      0.27,
+      0.2
+    ],
+    "timber_other": [
+      0.6,
+      0.55,
+      0.5,
+      0.45,
+      0.4
+    ]
+  },
+  "masonry": [
+    "unreinforced_masonry",
+    "confined_masonry"
+  ],
+  "floor_penalty_types": [
+    "rc_frame",
+    "precast_industrial",
+    "timber_other",
+    "unknown"
+  ],
+  "floor": {
+    "base": 3,
+    "step": 0.018,
+    "cap": 0.18
+  },
+  "masonry_floor": {
+    "limit": 3,
+    "penalty": 0.1
+  },
+  "modifiers": [
+    [
+      "soft_story",
+      0.15
+    ],
+    [
+      "irregularity",
+      0.08
+    ],
+    [
+      "pounding_risk",
+      0.05
+    ],
+    [
+      "prior_unrepaired_damage",
+      0.12
+    ],
+    [
+      "amnesty_imar_barisi",
+      0.1
+    ]
+  ],
+  "retrofit_credit": 0.25,
+  "retrofit_trust": {
+    "self_reported": 0.2,
+    "surveyed": 1.0,
+    "official": 1.0
+  },
+  "source_trust": {
+    "self_reported": 0.5,
+    "surveyed": 0.85,
+    "official": 1.0
+  },
+  "completeness_weights": [
+    [
+      "structure_type",
+      3
+    ],
+    [
+      "year_built",
+      3
+    ],
+    [
+      "n_floors",
+      2
+    ],
+    [
+      "soft_story",
+      2
+    ],
+    [
+      "irregularity",
+      1
+    ],
+    [
+      "pounding_risk",
+      1
+    ],
+    [
+      "prior_unrepaired_damage",
+      1
+    ],
+    [
+      "amnesty_imar_barisi",
+      1
+    ],
+    [
+      "retrofit",
+      1
+    ]
+  ],
+  "v_bounds": [
+    0.05,
+    0.98
+  ],
+  "multiplier": {
+    "intercept": 0.65,
+    "slope": 1.15,
+    "min": 0.65,
+    "max": 1.8
+  },
+  "class_bins": [
+    [
+      0.8,
+      "A"
+    ],
+    [
+      0.65,
+      "B"
+    ],
+    [
+      0.5,
+      "C"
+    ],
+    [
+      0.35,
+      "D"
+    ],
+    [
+      0.2,
+      "E"
+    ]
+  ],
+  "class_fallback": "F",
+  "kappa_thresholds": {
+    "full": 0.7,
+    "partial": 0.3
+  },
+  "self_report_floor": 0.9,
+  "validation": {
+    "year_min": 1900,
+    "floors_min": 1,
+    "floors_max": 60
+  },
+  "plausibility": {
+    "masonry_tall_floors": 5,
+    "pre1975_tall_floors": 15,
+    "warn_masonry_tall": "yığma yapı için olağandışı kat sayısı",
+    "warn_pre1975_tall": "1975 öncesi için olağandışı yüksek bina"
+  },
+  "golden_year": 2026,
+  "golden": [
+    {
+      "site_risk": 60,
+      "card": {
+        "structure_type": "rc_frame",
+        "year_built": 1995,
+        "n_floors": 7,
+        "soft_story": true,
+        "irregularity": false,
+        "pounding_risk": false,
+        "prior_unrepaired_damage": false,
+        "amnesty_imar_barisi": false,
+        "retrofit": false,
+        "source": "surveyed"
+      },
+      "expected": {
+        "parcel_risk": 96,
+        "applied": true,
+        "resolution": "building_full",
+        "multiplier_effective": 1.603,
+        "downward_capped": false,
+        "vulnerability_index": 0.922,
+        "vulnerability_class": "A",
+        "multiplier_raw": 1.71,
+        "completeness": 1.0,
+        "kappa": 0.85
+      }
+    },
+    {
+      "site_risk": 60,
+      "card": {
+        "structure_type": "rc_shearwall",
+        "year_built": 2020,
+        "n_floors": 4,
+        "soft_story": false,
+        "irregularity": false,
+        "pounding_risk": false,
+        "prior_unrepaired_damage": false,
+        "amnesty_imar_barisi": false,
+        "retrofit": false,
+        "source": "surveyed"
+      },
+      "expected": {
+        "parcel_risk": 54,
+        "applied": true,
+        "resolution": "building_full",
+        "multiplier_effective": 0.898,
+        "downward_capped": false,
+        "vulnerability_index": 0.2,
+        "vulnerability_class": "E",
+        "multiplier_raw": 0.88,
+        "completeness": 1.0,
+        "kappa": 0.85
+      }
+    },
+    {
+      "site_risk": 50,
+      "card": {
+        "structure_type": "rc_frame",
+        "year_built": 1985,
+        "n_floors": 6,
+        "soft_story": true
+      },
+      "expected": {
+        "parcel_risk": 62,
+        "applied": true,
+        "resolution": "building_partial",
+        "multiplier_effective": 1.235,
+        "downward_capped": false,
+        "vulnerability_index": 0.904,
+        "vulnerability_class": "A",
+        "multiplier_raw": 1.69,
+        "completeness": 0.67,
+        "kappa": 0.34
+      }
+    },
+    {
+      "site_risk": 80,
+      "card": {
+        "structure_type": "steel",
+        "year_built": 2022,
+        "n_floors": 2,
+        "retrofit": true,
+        "retrofit_year": 2024
+      },
+      "expected": {
+        "parcel_risk": 76,
+        "applied": true,
+        "resolution": "building_partial",
+        "multiplier_effective": 0.946,
+        "downward_capped": false,
+        "vulnerability_index": 0.15,
+        "vulnerability_class": "F",
+        "multiplier_raw": 0.82,
+        "completeness": 0.6,
+        "kappa": 0.3
+      }
+    },
+    {
+      "site_risk": 45,
+      "card": {
+        "structure_type": "unreinforced_masonry",
+        "year_built": 1960,
+        "n_floors": 4,
+        "amnesty_imar_barisi": true,
+        "prior_unrepaired_damage": true,
+        "soft_story": false
+      },
+      "expected": {
+        "parcel_risk": 59,
+        "applied": true,
+        "resolution": "building_partial",
+        "multiplier_effective": 1.312,
+        "downward_capped": false,
+        "vulnerability_index": 0.98,
+        "vulnerability_class": "A",
+        "multiplier_raw": 1.78,
+        "completeness": 0.8,
+        "kappa": 0.4
+      }
+    },
+    {
+      "site_risk": 70,
+      "card": {
+        "structure_type": "unknown",
+        "n_floors": 12,
+        "soft_story": true,
+        "irregularity": true
+      },
+      "expected": {
+        "parcel_risk": 70,
+        "applied": false,
+        "resolution": "site_only",
+        "multiplier_effective": 1.0,
+        "downward_capped": false,
+        "vulnerability_index": 0.903,
+        "vulnerability_class": "A",
+        "multiplier_raw": 1.69,
+        "completeness": 0.33,
+        "kappa": 0.17
+      }
+    },
+    {
+      "site_risk": 61,
+      "card": {},
+      "expected": {
+        "parcel_risk": 61,
+        "applied": false,
+        "resolution": "site_only",
+        "multiplier_effective": 1.0,
+        "downward_capped": false,
+        "vulnerability_index": 0.511,
+        "vulnerability_class": "C",
+        "multiplier_raw": 1.24,
+        "completeness": 0.0,
+        "kappa": 0.0
+      }
+    },
+    {
+      "site_risk": 97,
+      "card": {
+        "structure_type": "precast_industrial",
+        "year_built": 1970,
+        "n_floors": 60,
+        "soft_story": true,
+        "irregularity": true,
+        "pounding_risk": true,
+        "prior_unrepaired_damage": true,
+        "amnesty_imar_barisi": true,
+        "retrofit": false
+      },
+      "expected": {
+        "parcel_risk": 100,
+        "applied": true,
+        "resolution": "building_partial",
+        "multiplier_effective": 1.39,
+        "downward_capped": false,
+        "vulnerability_index": 0.98,
+        "vulnerability_class": "A",
+        "multiplier_raw": 1.78,
+        "completeness": 1.0,
+        "kappa": 0.5
+      }
+    }
+  ]
+}
